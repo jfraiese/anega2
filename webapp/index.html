@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>anega2 · riesgo de anegamiento</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1 id="title">anega2 · riesgo de anegamiento</h1>
+    <div id="subtitle" class="muted">cargando…</div>
+  </div>
+  <div class="header-right">
+    <label>Proyecto <select id="project"></select></label>
+    <label class="opacity">Opacidad rasters <input id="opacity" type="range" min="0.1" max="1" step="0.05" value="0.8"></label>
+    <button id="btn-fit" title="Centrar en el lote">Centrar lote</button>
+  </div>
+</header>
+<main>
+  <div id="map"></div>
+  <aside id="panel">
+    <nav class="tabs">
+      <button data-tab="veredicto" class="active">Veredicto</button>
+      <button data-tab="capas">Capas</button>
+      <button data-tab="terreno">Terreno</button>
+      <button data-tab="historico">Histórico</button>
+      <button data-tab="simulacion">Simulación</button>
+      <button data-tab="figuras">Figuras</button>
+    </nav>
+    <section id="tab-veredicto" class="tab active">
+      <div id="key-cards" class="cards"></div>
+      <div id="verdict" class="md"></div>
+      <details><summary>Qué chequear en campo</summary><div id="field" class="md"></div></details>
+    </section>
+    <section id="tab-capas" class="tab"><div id="layer-panel"></div></section>
+    <section id="tab-terreno" class="tab">
+      <p class="muted" id="terrain-intro">Estadísticas del lote y del buffer de interés para cada DEM disponible. El primario se elige por fidelidad de la red de drenaje frente a los arroyos de OSM, con preferencia por terreno desnudo (FABDEM): los modelos de superficie ven las copas de los árboles.</p>
+      <div id="terrain-table" class="table-wrap"></div>
+      <h3 id="dep-title">Depresiones cerradas dentro del buffer</h3>
+      <div id="dep-table" class="table-wrap"></div>
+    </section>
+    <section id="tab-historico" class="tab">
+      <h3>Landsat 1984-2021 (JRC GSW v1.4)</h3>
+      <div id="jrc-table" class="table-wrap"></div>
+      <p id="jrc-extra" class="muted"></p>
+      <h3>Sentinel-1 por escena</h3>
+      <p class="muted">Elegí una escena para ver su imagen (dB) y su máscara de agua en el mapa.</p>
+      <div id="scene-list" class="list"></div>
+      <div id="sar-table" class="table-wrap"></div>
+    </section>
+    <section id="tab-simulacion" class="tab">
+      <p class="muted" id="sim-intro">Landlab OverlandFlow + Green-Ampt sobre el DEM primario. Elegí un escenario: cambia la lámina máxima en el mapa.</p>
+      <div id="scenario-list" class="list"></div>
+      <div class="chart-wrap"><canvas id="hyeto"></canvas></div>
+      <div class="chart-wrap"><canvas id="scen-compare"></canvas></div>
+      <div id="rog-table" class="table-wrap"></div>
+      <details><summary>Parámetros</summary><pre id="rog-params"></pre></details>
+    </section>
+    <section id="tab-figuras" class="tab"><div id="gallery" class="gallery"></div></section>
+  </aside>
+</main>
+<div id="legend" class="legend"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

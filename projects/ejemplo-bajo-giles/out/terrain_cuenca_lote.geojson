@@ -1,0 +1,13 @@
+{
+"type": "FeatureCollection",
+"name": "cuenca_lote",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5347" } },
+"features": [
+{"type":"Feature","properties":{"Name":"Cuenca aportante al lote (1.0 ha)"},"geometry":{"type":"Polygon","coordinates":[[[5553210.0,6193440.0],[5553210.0,6193260.0],[5553240.0,6193260.0],[5553240.0,6193440.0],[5553210.0,6193440.0]]]}},
+{"type":"Feature","properties":{"Name":"Cuenca aportante al lote (1.0 ha)"},"geometry":{"type":"Polygon","coordinates":[[[5553240.0,6193260.0],[5553240.0,6193230.0],[5553270.0,6193230.0],[5553270.0,6193260.0],[5553240.0,6193260.0]]]}},
+{"type":"Feature","properties":{"Name":"Cuenca aportante al lote (1.0 ha)"},"geometry":{"type":"Polygon","coordinates":[[[5553270.0,6193230.0],[5553270.0,6193200.0],[5553300.0,6193200.0],[5553300.0,6193230.0],[5553270.0,6193230.0]]]}},
+{"type":"Feature","properties":{"Name":"Cuenca aportante al lote (1.0 ha)"},"geometry":{"type":"Polygon","coordinates":[[[5553300.0,6193200.0],[5553300.0,6193170.0],[5553330.0,6193170.0],[5553330.0,6193200.0],[5553300.0,6193200.0]]]}},
+{"type":"Feature","properties":{"Name":"Cuenca aportante al lote (1.0 ha)"},"geometry":{"type":"Polygon","coordinates":[[[5553330.0,6193170.0],[5553330.0,6193140.0],[5553360.0,6193140.0],[5553360.0,6193170.0],[5553330.0,6193170.0]]]}},
+{"type":"Feature","properties":{"Name":"Cuenca aportante al lote (1.0 ha)"},"geometry":{"type":"Polygon","coordinates":[[[5553360.0,6193140.0],[5553360.0,6193110.0],[5553390.0,6193110.0],[5553390.0,6193140.0],[5553360.0,6193140.0]]]}}
+]
+}

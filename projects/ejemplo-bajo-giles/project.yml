@@ -1,0 +1,74 @@
+# Proyecto anega2. Editá lo que necesites; lo que no esté acá toma el valor de anega2/defaults.yml
+nombre: ejemplo-bajo-giles
+titulo: Bajo rural en la planicie del Arroyo de Giles (ejemplo)
+kml: lote.kml
+crs: auto
+buffers:
+  aoi_m: 500
+  hidro_m: 10000
+  lluvia_m: 5000
+  grilla_m: 2000
+dem:
+  fuentes:
+  - ign30
+  - ign5
+  - glo30
+  - fabdem
+  primario: auto
+  umbrales_red_km2:
+  - 0.5
+  - 2.0
+sar:
+  umbral_fijo_dB: -18.0
+  referencia_seca:
+    desde: '2023-01-15'
+    hasta: '2023-03-31'
+    descr: 'Referencia seca: verano 2023 (sequía 2022-23)'
+  eventos:
+  - id: 2015-08_agosto2015
+    fecha: '2015-08-10'
+    ventana_d: 12
+    descr: Lluvias e inundaciones del 9-11 ago 2015 (norte bonaerense)
+  - id: 2016-04_abril2016
+    fecha: '2016-04-10'
+    ventana_d: 15
+    descr: Lluvias e inundaciones abril 2016
+  - id: 2024-03_marzo2024
+    fecha: '2024-03-12'
+    ventana_d: 16
+    descr: Temporal 12 mar 2024 (AMBA / norte bonaerense)
+  - id: 2025-05_mayo2025
+    fecha: '2025-05-17'
+    ventana_d: 12
+    descr: Temporal 16-17 may 2025 (norte y oeste bonaerense)
+  - id: 2026-06_junio2026
+    fecha: '2026-06-08'
+    ventana_d: 10
+    descr: Lluvias 7-8 jun 2026
+lluvia:
+  escenarios:
+  - id: P050_24h
+    P_mm: 50
+    dur_h: 24
+  - id: P100_24h
+    P_mm: 100
+    dur_h: 24
+  - id: P150_24h
+    P_mm: 150
+    dur_h: 24
+  - id: P200_24h
+    P_mm: 200
+    dur_h: 24
+  - id: P060_2h
+    P_mm: 60
+    dur_h: 2
+  saturado:
+  - P100_24h
+  - P150_24h
+  Ks_mm_h: 10.0
+  Ks_sat_mm_h: 2.0
+  manning: 0.05
+  psi_m: 0.17
+  dtheta: 0.15
+  drenaje_h: 6
+  presupuesto_min: 60

@@ -1,0 +1,18 @@
+{
+ "primary": "fabdem",
+ "criterio": "distancia mediana OSM→red (m) + preferencia por terreno desnudo",
+ "score": {
+  "ign30": 54.650365035211635,
+  "glo30": 16.512532846396386,
+  "fabdem": 24.003057720605284
+ },
+ "labels": {
+  "ign30": "IGN MDE-Ar v2.1 30 m",
+  "glo30": "Copernicus DEM GLO-30",
+  "fabdem": "FABDEM v1.2 (GLO-30 sin árboles/edificios)"
+ },
+ "red_keys": [
+  "05km2",
+  "2km2"
+ ]
+}

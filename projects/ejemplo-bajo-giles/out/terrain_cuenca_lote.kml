@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Folder><name>cuenca_lote</name>
+  <Placemark id="cuenca_lote.1">
+	<name>Cuenca aportante al lote (1.0 ha)</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-59.4212964654431,-34.403089194055 -59.4212852932132,-34.40471176037 -59.420959025583,-34.4047102165186 -59.4209702041106,-34.4030876502968 -59.4212964654431,-34.403089194055</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark id="cuenca_lote.2">
+	<name>Cuenca aportante al lote (1.0 ha)</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-59.420959025583,-34.4047102165186 -59.4209571624081,-34.40498064418 -59.4206308937529,-34.4049790994429 -59.4206327579775,-34.4047086717971 -59.420959025583,-34.4047102165186</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark id="cuenca_lote.3">
+	<name>Cuenca aportante al lote (1.0 ha)</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-59.4206308937529,-34.4049790994429 -59.4206290295035,-34.4052495270767 -59.4203027598235,-34.405247981454 -59.4203046251226,-34.4049775538358 -59.4206308937529,-34.4049790994429</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark id="cuenca_lote.4">
+	<name>Cuenca aportante al lote (1.0 ha)</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-59.4203027598235,-34.405247981454 -59.4203008944996,-34.4055184090602 -59.4199746237947,-34.4055168625519 -59.4199764901684,-34.4052464349613 -59.4203027598235,-34.405247981454</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark id="cuenca_lote.5">
+	<name>Cuenca aportante al lote (1.0 ha)</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-59.4199746237947,-34.4055168625519 -59.4199727573962,-34.4057872901304 -59.4196464856665,-34.4057857427364 -59.4196483531147,-34.4055153151735 -59.4199746237947,-34.4055168625519</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark id="cuenca_lote.6">
+	<name>Cuenca aportante al lote (1.0 ha)</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-59.4196464856665,-34.4057857427364 -59.4196446181933,-34.4060561702873 -59.4193183454388,-34.4060546220077 -59.4193202139616,-34.4057841944724 -59.4196464856665,-34.4057857427364</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+</Folder>
+</Document></kml>

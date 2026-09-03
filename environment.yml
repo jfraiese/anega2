@@ -1,0 +1,29 @@
+name: anega2
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - gdal
+  - rasterio
+  - geopandas
+  - pyogrio
+  - shapely
+  - pyproj
+  - whitebox
+  - numpy
+  - scipy
+  - pandas
+  - pyyaml
+  - matplotlib
+  - pillow
+  - contextily
+  - requests
+  - xarray
+  - rioxarray
+  - landlab
+  - pystac-client
+  - planetary-computer
+  - scikit-image
+  - pip
+  - pip:
+      - -e .

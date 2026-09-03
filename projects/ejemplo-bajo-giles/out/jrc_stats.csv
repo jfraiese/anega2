@@ -1,0 +1,4 @@
+zona,n_pix,occ>0 %,occ>10 %,occ>50 %,occ max
+lote (píxeles tocados),25,0.00,0.00,0.00,0
+buffer 500 m,870,0.00,0.00,0.00,0
+buffer 10 km,349023,0.16,0.03,0.01,66

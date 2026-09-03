@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Folder><name>depresiones_aoi</name>
+  <Placemark id="depresiones_aoi.1">
+	<name>depresión 1</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-59.4226070842061,-34.4022840768813 -59.4226052265025,-34.4025545047289 -59.42227896717,-34.4025529644817 -59.4222808259232,-34.4022825366496 -59.4226070842061,-34.4022840768813</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+  <Placemark id="depresiones_aoi.2">
+	<name>depresión 2</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>-59.4242291134661,-34.4036439044943 -59.4242254082829,-34.4041847602115 -59.4235728768,-34.4041816873615 -59.4235747315032,-34.4039112595398 -59.4239009961827,-34.4039127963844 -59.4239028498115,-34.4036423685352 -59.4242291134661,-34.4036439044943</coordinates></LinearRing></outerBoundaryIs></Polygon>
+  </Placemark>
+</Folder>
+</Document></kml>

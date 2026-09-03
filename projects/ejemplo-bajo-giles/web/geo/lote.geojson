@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "lote",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{"type":"Feature","properties":{"Name":"Lote"},"geometry":{"type":"Polygon","coordinates":[[[-59.421133300000065,-34.404299000000272],[-59.421133300000065,-34.403221000000279],[-59.419826700000066,-34.403221000000272],[-59.419826700000066,-34.404299000000265],[-59.421133300000065,-34.404299000000272]]]}}
+]
+}

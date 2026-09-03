@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "depresiones_aoi",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5347" } },
+"features": [
+{"type":"Feature","properties":{"Name":"depresión 1"},"geometry":{"type":"Polygon","coordinates":[[[5553090.0,6193530.0],[5553090.0,6193500.0],[5553120.0,6193500.0],[5553120.0,6193530.0],[5553090.0,6193530.0]]]}},
+{"type":"Feature","properties":{"Name":"depresión 2"},"geometry":{"type":"Polygon","coordinates":[[[5552940.0,6193380.0],[5552940.0,6193320.0],[5553000.0,6193320.0],[5553000.0,6193350.0],[5552970.0,6193350.0],[5552970.0,6193380.0],[5552940.0,6193380.0]]]}}
+]
+}

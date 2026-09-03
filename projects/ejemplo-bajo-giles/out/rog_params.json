@@ -1,0 +1,11 @@
+{
+ "manning": 0.05,
+ "Ks_mm_h": 10.0,
+ "Ks_sat_mm_h": 2.0,
+ "psi_m": 0.17,
+ "dtheta": 0.15,
+ "alpha": 0.7,
+ "h_thresh_m": 0.05,
+ "drenaje_h": 6.0,
+ "dominio_m": 5000.0
+}

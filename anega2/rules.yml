@@ -1,0 +1,41 @@
+# Reglas heurísticas del veredicto de anega2. Cada regla asigna un nivel si el valor cruza el umbral
+# (dirección "ge": valor >= umbral; "lt": valor < umbral). El nivel de cada componente es el máximo disparado.
+niveles: [BAJO, MEDIO-BAJO, MEDIO, ALTO]
+lluvia_local:
+  depresion_prof_max_m:
+    descr: "profundidad máxima de depresión cerrada dentro del lote (fill − DEM)"
+    dir: ge
+    umbrales: {MEDIO: 0.10, ALTO: 0.30}
+  cuenca_aportante_ha:
+    descr: "cuenca que drena a la celda más baja del lote"
+    dir: ge
+    umbrales: {MEDIO: 5, ALTO: 50}
+  hmax_lote_100mm_cm:
+    descr: "lámina máxima simulada en el lote con 100 mm en 24 h"
+    dir: ge
+    umbrales: {MEDIO-BAJO: 5, MEDIO: 10, ALTO: 20}
+  pct_lote_gt5cm_100mm:
+    descr: "% del lote con más de 5 cm con 100 mm en 24 h"
+    dir: ge
+    umbrales: {MEDIO: 50}
+desborde:
+  hand_min_m:
+    descr: "HAND mínimo del lote (altura sobre el drenaje más cercano por camino de flujo)"
+    dir: lt
+    umbrales: {ALTO: 0.5, MEDIO: 1.0, MEDIO-BAJO: 2.0}
+  jrc_occ_lote_pct:
+    descr: "% de píxeles del lote con agua alguna vez (Landsat 1984-2021)"
+    dir: ge
+    umbrales: {ALTO: 0.0001}
+  sar_agua_lote_pct_max:
+    descr: "máximo % del lote detectado como agua en alguna escena Sentinel-1"
+    dir: ge
+    umbrales: {ALTO: 5}
+  sar_agua_aoi_pct_max:
+    descr: "máximo % del entorno (buffer AOI) detectado como agua en alguna escena Sentinel-1"
+    dir: ge
+    umbrales: {MEDIO: 10}
+  pct_aoi_gt20cm_150mm:
+    descr: "% del entorno con más de 20 cm simulados con 150 mm en 24 h"
+    dir: ge
+    umbrales: {MEDIO: 10}

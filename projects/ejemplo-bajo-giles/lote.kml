@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>ejemplo-bajo-giles</name>
+<Placemark><name>Bajo rural en la planicie del Arroyo de Giles (ejemplo)</name><Polygon><outerBoundaryIs><LinearRing><coordinates>-59.4211333,-34.4042990,0 -59.4198267,-34.4042990,0 -59.4198267,-34.4032210,0 -59.4211333,-34.4032210,0 -59.4211333,-34.4042990,0</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Document></kml>

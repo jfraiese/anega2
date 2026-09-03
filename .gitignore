@@ -1,0 +1,24 @@
+# proyectos: sólo se versiona el ejemplo público
+projects/*
+!projects/ejemplo-*/
+projects/ejemplo-*/data/
+# caché compartida de hojas IGN / FABDEM
+cache/
+# credenciales
+.env
+*.secret
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+.ipynb_checkpoints/
+# macOS
+.DS_Store
+!projects/README.md
+# logs de corrida
+*.log
+projects/ejemplo-*/out/alt_*/
+projects/ejemplo-*/out/*.tif
+projects/ejemplo-*/out/*.png
+projects/ejemplo-*/out/ficha/*.png

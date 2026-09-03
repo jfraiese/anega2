@@ -1,0 +1,43 @@
+{
+ "indicadores": {
+  "depresion_prof_max_m": 0.0,
+  "cuenca_aportante_ha": 0.99,
+  "hand_min_m": 0.5723342895507812,
+  "hmax_lote_100mm_cm": 8.200000000000001,
+  "pct_lote_gt5cm_100mm": 8.0,
+  "pct_aoi_gt20cm_150mm": 33.9,
+  "jrc_occ_lote_pct": 0.0,
+  "sar_agua_lote_pct_max": 0.0,
+  "sar_agua_aoi_pct_max": 0.0
+ },
+ "veredicto": {
+  "lluvia_local": {
+   "nivel": "MEDIO-BAJO",
+   "razones": [
+    [
+     "MEDIO-BAJO",
+     "lámina máxima simulada en el lote con 100 mm en 24 h",
+     8.200000000000001
+    ]
+   ],
+   "faltan": []
+  },
+  "desborde": {
+   "nivel": "MEDIO",
+   "razones": [
+    [
+     "MEDIO",
+     "HAND mínimo del lote (altura sobre el drenaje más cercano por camino de flujo)",
+     0.5723342895507812
+    ],
+    [
+     "MEDIO",
+     "% del entorno con más de 20 cm simulados con 150 mm en 24 h",
+     33.9
+    ]
+   ],
+   "faltan": []
+  },
+  "global": "MEDIO"
+ }
+}

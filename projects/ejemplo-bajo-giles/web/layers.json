@@ -1,0 +1,2336 @@
+{
+"nombre": "ejemplo-bajo-giles",
+"titulo": "Bajo rural en la planicie del Arroyo de Giles (ejemplo)",
+"crs": "EPSG:5347",
+"aoi_m": 500.0,
+"hidro_m": 10000.0,
+"res_m": 30.0,
+"primary": "fabdem",
+"generado": "2026-09-03T18:13:12",
+"center": [
+-34.403760000616124,
+-59.42047999998264
+],
+"layers": [
+{
+"id": "lote",
+"title": "Lote",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/lote.geojson",
+"style": {
+"color": "#ff0000",
+"weight": 3,
+"fillOpacity": 0.05
+},
+"visible": true,
+"description": "",
+"n": 1
+},
+{
+"id": "buffer_aoi",
+"title": "Buffer 500 m",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/buffer_aoi.geojson",
+"style": {
+"color": "#ff9900",
+"weight": 2,
+"fill": false,
+"dashArray": "6 4"
+},
+"visible": true,
+"description": "",
+"n": 1
+},
+{
+"id": "buffer_hidro",
+"title": "Buffer 10 km",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/buffer_hidro.geojson",
+"style": {
+"color": "#3388ff",
+"weight": 1.5,
+"fill": false,
+"dashArray": "8 6"
+},
+"visible": false,
+"description": "",
+"n": 1
+},
+{
+"id": "osm",
+"title": "Arroyos (OpenStreetMap)",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/osm.geojson",
+"style": {
+"color": "#00e5ff",
+"weight": 3
+},
+"visible": true,
+"description": "Cursos de agua mapeados en OSM (river/stream/canal/drain/ditch).",
+"n": 144
+},
+{
+"id": "red_05km2",
+"title": "Red de drenaje ≥ 0,5 km² (DEM)",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/red_05km2.geojson",
+"style": {
+"color": "#66ccff",
+"weight": 1.5
+},
+"visible": false,
+"description": "",
+"n": 358
+},
+{
+"id": "red_2km2",
+"title": "Red de drenaje ≥ 2 km² (DEM)",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/red_2km2.geojson",
+"style": {
+"color": "#0033ff",
+"weight": 2.5
+},
+"visible": true,
+"description": "",
+"n": 114
+},
+{
+"id": "cuenca",
+"title": "Cuenca aportante al lote",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/cuenca.geojson",
+"style": {
+"color": "#00ff00",
+"weight": 2,
+"fillOpacity": 0.15
+},
+"visible": true,
+"description": "",
+"n": 6
+},
+{
+"id": "flowpath",
+"title": "Camino de flujo desde el lote",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/flowpath.geojson",
+"style": {
+"color": "#ff00ff",
+"weight": 3
+},
+"visible": true,
+"description": "",
+"n": 1
+},
+{
+"id": "depresiones",
+"title": "Depresiones cerradas (500 m)",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/depresiones.geojson",
+"style": {
+"color": "#9900cc",
+"weight": 1,
+"fillOpacity": 0.45
+},
+"visible": false,
+"description": "",
+"n": 2
+},
+{
+"id": "hand_le1",
+"title": "HAND ≤ 1 m (±3 km)",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/hand_le1.geojson",
+"style": {
+"color": "#cc0000",
+"weight": 1,
+"fillOpacity": 0.35
+},
+"visible": false,
+"description": "",
+"n": 12
+},
+{
+"id": "hand_le2",
+"title": "HAND ≤ 2 m (±3 km)",
+"group": "Referencia",
+"type": "geojson",
+"url": "geo/hand_le2.geojson",
+"style": {
+"color": "#ff9933",
+"weight": 1,
+"fillOpacity": 0.35
+},
+"visible": false,
+"description": "",
+"n": 6
+},
+{
+"id": "dem",
+"title": "Elevación (m snm)",
+"group": "Terreno",
+"subgroup": null,
+"type": "image",
+"url": "img/dem.png",
+"bounds": [
+[
+-34.4999389923468,
+-59.53633863268846
+],
+[
+-34.3075658907666,
+-59.30448856207944
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 29.0,
+"vmax": 56.0,
+"unit": "m",
+"stops": [
+"#333399",
+"#0888ee",
+"#01cc66",
+"#81e680",
+"#fefe98",
+"#beac76",
+"#815e56",
+"#c1b0ac",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "DEM primario fabdem (30 m)."
+},
+{
+"id": "hand",
+"title": "HAND · altura sobre el drenaje (m)",
+"group": "Terreno",
+"subgroup": null,
+"type": "image",
+"url": "img/hand.png",
+"bounds": [
+[
+-34.4999389923468,
+-59.53633863268846
+],
+[
+-34.3075658907666,
+-59.30448856207944
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 6,
+"unit": "m",
+"stops": [
+"#a50026",
+"#de402e",
+"#f98e52",
+"#fed485",
+"#feffc0",
+"#d1ecf4",
+"#8ec2dc",
+"#4f81ba",
+"#313695"
+]
+},
+"visible": true,
+"description": "Altura sobre la celda de drenaje a la que escurre cada celda. Rojo = bajo."
+},
+{
+"id": "slope",
+"title": "Pendiente (%)",
+"group": "Terreno",
+"subgroup": null,
+"type": "image",
+"url": "img/slope.png",
+"bounds": [
+[
+-34.4999389923468,
+-59.53633863268846
+],
+[
+-34.3075658907666,
+-59.30448856207944
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 3,
+"unit": "%",
+"stops": [
+"#000004",
+"#1d1147",
+"#51127c",
+"#832681",
+"#b73779",
+"#e75263",
+"#fc8961",
+"#fec488",
+"#fcfdbf"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "twi",
+"title": "TWI · índice de humedad",
+"group": "Terreno",
+"subgroup": null,
+"type": "image",
+"url": "img/twi.png",
+"bounds": [
+[
+-34.4999389923468,
+-59.53633863268846
+],
+[
+-34.3075658907666,
+-59.30448856207944
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 5,
+"vmax": 15,
+"unit": "",
+"stops": [
+"#f7fbff",
+"#deebf7",
+"#c6dbef",
+"#9dcae1",
+"#6aaed6",
+"#4191c6",
+"#2070b4",
+"#08509b",
+"#08306b"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "sink",
+"title": "Depresiones cerradas · profundidad (m)",
+"group": "Terreno",
+"subgroup": null,
+"type": "image",
+"url": "img/sink.png",
+"bounds": [
+[
+-34.4999389923468,
+-59.53633863268846
+],
+[
+-34.3075658907666,
+-59.30448856207944
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 0.5,
+"unit": "m",
+"stops": [
+"#fff7fb",
+"#ece7f2",
+"#d0d1e6",
+"#a5bddb",
+"#73a9cf",
+"#358fc0",
+"#056faf",
+"#04598c",
+"#023858"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "facc",
+"title": "Área de aporte (log10 ha)",
+"group": "Terreno",
+"subgroup": null,
+"type": "image",
+"url": "img/facc.png",
+"bounds": [
+[
+-34.4999389923468,
+-59.53633863268846
+],
+[
+-34.3075658907666,
+-59.30448856207944
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -1,
+"vmax": 3,
+"unit": "log10 ha",
+"stops": [
+"#00224e",
+"#1a386f",
+"#434e6c",
+"#61656f",
+"#7d7c78",
+"#9b9476",
+"#bcae6c",
+"#dec958",
+"#fee838"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "dist",
+"title": "Distancia de flujo al drenaje (m)",
+"group": "Terreno",
+"subgroup": null,
+"type": "image",
+"url": "img/dist.png",
+"bounds": [
+[
+-34.4999389923468,
+-59.53633863268846
+],
+[
+-34.3075658907666,
+-59.30448856207944
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 2000,
+"unit": "m",
+"stops": [
+"#ffffe5",
+"#fff7bc",
+"#fee390",
+"#fec34f",
+"#fe9829",
+"#eb6f14",
+"#cb4b02",
+"#983404",
+"#662506"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "jrc_occ",
+"title": "JRC · ocurrencia de agua 1984-2021 (%)",
+"group": "Histórico",
+"subgroup": null,
+"type": "image",
+"url": "img/jrc_occ.png",
+"bounds": [
+[
+-34.497463067037884,
+-59.53278089937443
+],
+[
+-34.309945313923436,
+-59.30746973196267
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 100,
+"unit": "%",
+"stops": [
+"#ffffff",
+"#ff9f9f",
+"#ff3f3f",
+"#f00021",
+"#c40081",
+"#9900e1",
+"#6700ff",
+"#3300ff",
+"#0000ff"
+]
+},
+"visible": false,
+"description": "Landsat, 30 m. % de observaciones con agua."
+},
+{
+"id": "sar_db_20230225ref",
+"title": "S1 γ⁰ VV dB · 2023-02-25 · referencia seca (ref)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20230225ref.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1A_IW_GRDH_1SDV_20230225T091530_20230225T091555_047390_05B052_rtc"
+},
+{
+"id": "sar_db_20150818post",
+"title": "S1 γ⁰ VV dB · 2015-08-18 · 2015-08 (post)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20150818post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1A_IW_GRDH_1SSV_20150818T091444_20150818T091508_007315_00A0A9_rtc"
+},
+{
+"id": "sar_w_20150818post",
+"title": "S1 agua · 2015-08-18 · 2015-08 (post)",
+"group": "Histórico",
+"subgroup": "sar_w",
+"type": "image",
+"url": "img/sar_w_20150818post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "classes",
+"classes": [
+{
+"value": 1,
+"label": "agua (también en ref. seca)",
+"color": "#1f4fd8"
+},
+{
+"value": 2,
+"label": "agua nueva",
+"color": "#e31a1c"
+}
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "sar_db_20240303pre",
+"title": "S1 γ⁰ VV dB · 2024-03-03 · 2024-03 (pre)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20240303pre.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1A_IW_GRDH_1SDV_20240303T091535_20240303T091600_052815_066446_rtc"
+},
+{
+"id": "sar_w_20240303pre",
+"title": "S1 agua · 2024-03-03 · 2024-03 (pre)",
+"group": "Histórico",
+"subgroup": "sar_w",
+"type": "image",
+"url": "img/sar_w_20240303pre.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "classes",
+"classes": [
+{
+"value": 1,
+"label": "agua (también en ref. seca)",
+"color": "#1f4fd8"
+},
+{
+"value": 2,
+"label": "agua nueva",
+"color": "#e31a1c"
+}
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "sar_db_20240327post",
+"title": "S1 γ⁰ VV dB · 2024-03-27 · 2024-03 (post)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20240327post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1A_IW_GRDH_1SDV_20240327T091535_20240327T091600_053165_0670F5_rtc"
+},
+{
+"id": "sar_w_20240327post",
+"title": "S1 agua · 2024-03-27 · 2024-03 (post)",
+"group": "Histórico",
+"subgroup": "sar_w",
+"type": "image",
+"url": "img/sar_w_20240327post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "classes",
+"classes": [
+{
+"value": 1,
+"label": "agua (también en ref. seca)",
+"color": "#1f4fd8"
+},
+{
+"value": 2,
+"label": "agua nueva",
+"color": "#e31a1c"
+}
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "sar_db_20250509pre",
+"title": "S1 γ⁰ VV dB · 2025-05-09 · 2025-05 (pre)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20250509pre.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1A_IW_GRDH_1SDV_20250509T091529_20250509T091554_059115_rtc"
+},
+{
+"id": "sar_w_20250509pre",
+"title": "S1 agua · 2025-05-09 · 2025-05 (pre)",
+"group": "Histórico",
+"subgroup": "sar_w",
+"type": "image",
+"url": "img/sar_w_20250509pre.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "classes",
+"classes": [
+{
+"value": 1,
+"label": "agua (también en ref. seca)",
+"color": "#1f4fd8"
+},
+{
+"value": 2,
+"label": "agua nueva",
+"color": "#e31a1c"
+}
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "sar_db_20250515pre",
+"title": "S1 γ⁰ VV dB · 2025-05-15 · 2025-05 (pre)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20250515pre.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1C_IW_GRDH_1SDV_20250515T091414_20250515T091439_002339_rtc"
+},
+{
+"id": "sar_w_20250515pre",
+"title": "S1 agua · 2025-05-15 · 2025-05 (pre)",
+"group": "Histórico",
+"subgroup": "sar_w",
+"type": "image",
+"url": "img/sar_w_20250515pre.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "classes",
+"classes": [
+{
+"value": 1,
+"label": "agua (también en ref. seca)",
+"color": "#1f4fd8"
+},
+{
+"value": 2,
+"label": "agua nueva",
+"color": "#e31a1c"
+}
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "sar_db_20250527post",
+"title": "S1 γ⁰ VV dB · 2025-05-27 · 2025-05 (post)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20250527post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1C_IW_GRDH_1SDV_20250527T091415_20250527T091440_002514_rtc"
+},
+{
+"id": "sar_w_20250527post",
+"title": "S1 agua · 2025-05-27 · 2025-05 (post)",
+"group": "Histórico",
+"subgroup": "sar_w",
+"type": "image",
+"url": "img/sar_w_20250527post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "classes",
+"classes": [
+{
+"value": 1,
+"label": "agua (también en ref. seca)",
+"color": "#1f4fd8"
+},
+{
+"value": 2,
+"label": "agua nueva",
+"color": "#e31a1c"
+}
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "sar_db_20260604pre",
+"title": "S1 γ⁰ VV dB · 2026-06-04 · 2026-06 (pre)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20260604pre.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1D_IW_GRDH_1SDV_20260604T091439_20260604T091504_003084_00555E_rtc"
+},
+{
+"id": "sar_w_20260604pre",
+"title": "S1 agua · 2026-06-04 · 2026-06 (pre)",
+"group": "Histórico",
+"subgroup": "sar_w",
+"type": "image",
+"url": "img/sar_w_20260604pre.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "classes",
+"classes": [
+{
+"value": 1,
+"label": "agua (también en ref. seca)",
+"color": "#1f4fd8"
+},
+{
+"value": 2,
+"label": "agua nueva",
+"color": "#e31a1c"
+}
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "sar_db_20260609post",
+"title": "S1 γ⁰ VV dB · 2026-06-09 · 2026-06 (post)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20260609post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1A_IW_GRDH_1SDV_20260609T091501_20260609T091526_064890_082D55_rtc"
+},
+{
+"id": "sar_w_20260609post",
+"title": "S1 agua · 2026-06-09 · 2026-06 (post)",
+"group": "Histórico",
+"subgroup": "sar_w",
+"type": "image",
+"url": "img/sar_w_20260609post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "classes",
+"classes": [
+{
+"value": 1,
+"label": "agua (también en ref. seca)",
+"color": "#1f4fd8"
+},
+{
+"value": 2,
+"label": "agua nueva",
+"color": "#e31a1c"
+}
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "sar_db_20260616post",
+"title": "S1 γ⁰ VV dB · 2026-06-16 · 2026-06 (post)",
+"group": "Histórico",
+"subgroup": "sar_db",
+"type": "image",
+"url": "img/sar_db_20260616post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": -25,
+"vmax": 0,
+"unit": "dB",
+"stops": [
+"#000000",
+"#202020",
+"#404040",
+"#606060",
+"#808080",
+"#a0a0a0",
+"#c0c0c0",
+"#e0e0e0",
+"#ffffff"
+]
+},
+"visible": false,
+"description": "Escena S1D_IW_GRDH_1SDV_20260616T091440_20260616T091505_003259_005B26_rtc"
+},
+{
+"id": "sar_w_20260616post",
+"title": "S1 agua · 2026-06-16 · 2026-06 (post)",
+"group": "Histórico",
+"subgroup": "sar_w",
+"type": "image",
+"url": "img/sar_w_20260616post.png",
+"bounds": [
+[
+-34.43147739216032,
+-59.45402028492014
+],
+[
+-34.37598683728235,
+-59.387092263407176
+]
+],
+"legend": {
+"type": "classes",
+"classes": [
+{
+"value": 1,
+"label": "agua (también en ref. seca)",
+"color": "#1f4fd8"
+},
+{
+"value": 2,
+"label": "agua nueva",
+"color": "#e31a1c"
+}
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_h_P050_24h",
+"title": "Lámina máxima · 50 mm en 24 h (m)",
+"group": "Simulación",
+"subgroup": "rog_h",
+"type": "image",
+"url": "img/rog_h_P050_24h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 0.5,
+"unit": "m",
+"stops": [
+"#f7fbff",
+"#deebf7",
+"#c6dbef",
+"#9dcae1",
+"#6aaed6",
+"#4191c6",
+"#2070b4",
+"#08509b",
+"#08306b"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_d_P050_24h",
+"title": "Duración > 5 cm · 50 mm en 24 h (h)",
+"group": "Simulación",
+"subgroup": "rog_d",
+"type": "image",
+"url": "img/rog_d_P050_24h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 24,
+"unit": "h",
+"stops": [
+"#ffffd9",
+"#edf8b1",
+"#c6e9b4",
+"#7ecdbb",
+"#40b5c4",
+"#1d90c0",
+"#225da8",
+"#243392",
+"#081d58"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_h_P060_2h",
+"title": "Lámina máxima · 60 mm en 2 h (m)",
+"group": "Simulación",
+"subgroup": "rog_h",
+"type": "image",
+"url": "img/rog_h_P060_2h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 0.5,
+"unit": "m",
+"stops": [
+"#f7fbff",
+"#deebf7",
+"#c6dbef",
+"#9dcae1",
+"#6aaed6",
+"#4191c6",
+"#2070b4",
+"#08509b",
+"#08306b"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_d_P060_2h",
+"title": "Duración > 5 cm · 60 mm en 2 h (h)",
+"group": "Simulación",
+"subgroup": "rog_d",
+"type": "image",
+"url": "img/rog_d_P060_2h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 24,
+"unit": "h",
+"stops": [
+"#ffffd9",
+"#edf8b1",
+"#c6e9b4",
+"#7ecdbb",
+"#40b5c4",
+"#1d90c0",
+"#225da8",
+"#243392",
+"#081d58"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_v_P060_2h",
+"title": "Mancha > 5 cm · 60 mm en 2 h",
+"group": "Simulación",
+"type": "geojson",
+"url": "geo/rog_v_P060_2h.geojson",
+"style": {
+"color": "#0033aa",
+"weight": 1,
+"fillOpacity": 0.35
+},
+"visible": false,
+"description": "",
+"n": 59
+},
+{
+"id": "rog_h_P100_24h",
+"title": "Lámina máxima · 100 mm en 24 h (m)",
+"group": "Simulación",
+"subgroup": "rog_h",
+"type": "image",
+"url": "img/rog_h_P100_24h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 0.5,
+"unit": "m",
+"stops": [
+"#f7fbff",
+"#deebf7",
+"#c6dbef",
+"#9dcae1",
+"#6aaed6",
+"#4191c6",
+"#2070b4",
+"#08509b",
+"#08306b"
+]
+},
+"visible": true,
+"description": ""
+},
+{
+"id": "rog_d_P100_24h",
+"title": "Duración > 5 cm · 100 mm en 24 h (h)",
+"group": "Simulación",
+"subgroup": "rog_d",
+"type": "image",
+"url": "img/rog_d_P100_24h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 24,
+"unit": "h",
+"stops": [
+"#ffffd9",
+"#edf8b1",
+"#c6e9b4",
+"#7ecdbb",
+"#40b5c4",
+"#1d90c0",
+"#225da8",
+"#243392",
+"#081d58"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_v_P100_24h",
+"title": "Mancha > 5 cm · 100 mm en 24 h",
+"group": "Simulación",
+"type": "geojson",
+"url": "geo/rog_v_P100_24h.geojson",
+"style": {
+"color": "#0033aa",
+"weight": 1,
+"fillOpacity": 0.35
+},
+"visible": false,
+"description": "",
+"n": 54
+},
+{
+"id": "rog_h_P100_24h_sat",
+"title": "Lámina máxima · 100 mm en 24 h · suelo saturado (Ks 2 mm/h) (m)",
+"group": "Simulación",
+"subgroup": "rog_h",
+"type": "image",
+"url": "img/rog_h_P100_24h_sat.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 0.5,
+"unit": "m",
+"stops": [
+"#f7fbff",
+"#deebf7",
+"#c6dbef",
+"#9dcae1",
+"#6aaed6",
+"#4191c6",
+"#2070b4",
+"#08509b",
+"#08306b"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_d_P100_24h_sat",
+"title": "Duración > 5 cm · 100 mm en 24 h · suelo saturado (Ks 2 mm/h) (h)",
+"group": "Simulación",
+"subgroup": "rog_d",
+"type": "image",
+"url": "img/rog_d_P100_24h_sat.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 24,
+"unit": "h",
+"stops": [
+"#ffffd9",
+"#edf8b1",
+"#c6e9b4",
+"#7ecdbb",
+"#40b5c4",
+"#1d90c0",
+"#225da8",
+"#243392",
+"#081d58"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_v_P100_24h_sat",
+"title": "Mancha > 5 cm · 100 mm en 24 h · suelo saturado (Ks 2 mm/h)",
+"group": "Simulación",
+"type": "geojson",
+"url": "geo/rog_v_P100_24h_sat.geojson",
+"style": {
+"color": "#0033aa",
+"weight": 1,
+"fillOpacity": 0.35
+},
+"visible": false,
+"description": "",
+"n": 51
+},
+{
+"id": "rog_h_P150_24h",
+"title": "Lámina máxima · 150 mm en 24 h (m)",
+"group": "Simulación",
+"subgroup": "rog_h",
+"type": "image",
+"url": "img/rog_h_P150_24h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 0.5,
+"unit": "m",
+"stops": [
+"#f7fbff",
+"#deebf7",
+"#c6dbef",
+"#9dcae1",
+"#6aaed6",
+"#4191c6",
+"#2070b4",
+"#08509b",
+"#08306b"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_d_P150_24h",
+"title": "Duración > 5 cm · 150 mm en 24 h (h)",
+"group": "Simulación",
+"subgroup": "rog_d",
+"type": "image",
+"url": "img/rog_d_P150_24h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 24,
+"unit": "h",
+"stops": [
+"#ffffd9",
+"#edf8b1",
+"#c6e9b4",
+"#7ecdbb",
+"#40b5c4",
+"#1d90c0",
+"#225da8",
+"#243392",
+"#081d58"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_v_P150_24h",
+"title": "Mancha > 5 cm · 150 mm en 24 h",
+"group": "Simulación",
+"type": "geojson",
+"url": "geo/rog_v_P150_24h.geojson",
+"style": {
+"color": "#0033aa",
+"weight": 1,
+"fillOpacity": 0.35
+},
+"visible": false,
+"description": "",
+"n": 54
+},
+{
+"id": "rog_h_P150_24h_sat",
+"title": "Lámina máxima · 150 mm en 24 h · suelo saturado (Ks 2 mm/h) (m)",
+"group": "Simulación",
+"subgroup": "rog_h",
+"type": "image",
+"url": "img/rog_h_P150_24h_sat.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 0.5,
+"unit": "m",
+"stops": [
+"#f7fbff",
+"#deebf7",
+"#c6dbef",
+"#9dcae1",
+"#6aaed6",
+"#4191c6",
+"#2070b4",
+"#08509b",
+"#08306b"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_d_P150_24h_sat",
+"title": "Duración > 5 cm · 150 mm en 24 h · suelo saturado (Ks 2 mm/h) (h)",
+"group": "Simulación",
+"subgroup": "rog_d",
+"type": "image",
+"url": "img/rog_d_P150_24h_sat.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 24,
+"unit": "h",
+"stops": [
+"#ffffd9",
+"#edf8b1",
+"#c6e9b4",
+"#7ecdbb",
+"#40b5c4",
+"#1d90c0",
+"#225da8",
+"#243392",
+"#081d58"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_v_P150_24h_sat",
+"title": "Mancha > 5 cm · 150 mm en 24 h · suelo saturado (Ks 2 mm/h)",
+"group": "Simulación",
+"type": "geojson",
+"url": "geo/rog_v_P150_24h_sat.geojson",
+"style": {
+"color": "#0033aa",
+"weight": 1,
+"fillOpacity": 0.35
+},
+"visible": false,
+"description": "",
+"n": 57
+},
+{
+"id": "rog_h_P200_24h",
+"title": "Lámina máxima · 200 mm en 24 h (m)",
+"group": "Simulación",
+"subgroup": "rog_h",
+"type": "image",
+"url": "img/rog_h_P200_24h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 0.5,
+"unit": "m",
+"stops": [
+"#f7fbff",
+"#deebf7",
+"#c6dbef",
+"#9dcae1",
+"#6aaed6",
+"#4191c6",
+"#2070b4",
+"#08509b",
+"#08306b"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_d_P200_24h",
+"title": "Duración > 5 cm · 200 mm en 24 h (h)",
+"group": "Simulación",
+"subgroup": "rog_d",
+"type": "image",
+"url": "img/rog_d_P200_24h.png",
+"bounds": [
+[
+-34.44885286173787,
+-59.47540825663401
+],
+[
+-34.358197345362306,
+-59.36618726432375
+]
+],
+"legend": {
+"type": "gradient",
+"vmin": 0,
+"vmax": 24,
+"unit": "h",
+"stops": [
+"#ffffd9",
+"#edf8b1",
+"#c6e9b4",
+"#7ecdbb",
+"#40b5c4",
+"#1d90c0",
+"#225da8",
+"#243392",
+"#081d58"
+]
+},
+"visible": false,
+"description": ""
+},
+{
+"id": "rog_v_P200_24h",
+"title": "Mancha > 5 cm · 200 mm en 24 h",
+"group": "Simulación",
+"type": "geojson",
+"url": "geo/rog_v_P200_24h.geojson",
+"style": {
+"color": "#0033aa",
+"weight": 1,
+"fillOpacity": 0.35
+},
+"visible": false,
+"description": "",
+"n": 55
+}
+],
+"scenes": [
+{
+"id": "20230225ref",
+"label": "2023-02-25 · referencia seca (ref)",
+"evento": "referencia_seca",
+"fecha": "2023-02-25",
+"momento": "ref",
+"escena": "S1A_IW_GRDH_1SDV_20230225T091530_20230225T091555_047390_05B052_rtc",
+"db_layer": "sar_db_20230225ref",
+"w_layer": null,
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.01,
+"dB_medio_lote": -8.3,
+"dB_dif_lote": null,
+"pct_500m_caida_3dB": null
+},
+{
+"id": "20150818post",
+"label": "2015-08-18 · 2015-08 (post)",
+"evento": "2015-08_agosto2015",
+"fecha": "2015-08-18",
+"momento": "post",
+"escena": "S1A_IW_GRDH_1SSV_20150818T091444_20150818T091508_007315_00A0A9_rtc",
+"db_layer": "sar_db_20150818post",
+"w_layer": "sar_w_20150818post",
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.06,
+"dB_medio_lote": -11.26,
+"dB_dif_lote": -2.97,
+"pct_500m_caida_3dB": 7.22
+},
+{
+"id": "20240303pre",
+"label": "2024-03-03 · 2024-03 (pre)",
+"evento": "2024-03_marzo2024",
+"fecha": "2024-03-03",
+"momento": "pre",
+"escena": "S1A_IW_GRDH_1SDV_20240303T091535_20240303T091600_052815_066446_rtc",
+"db_layer": "sar_db_20240303pre",
+"w_layer": "sar_w_20240303pre",
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.01,
+"dB_medio_lote": -9.38,
+"dB_dif_lote": -1.08,
+"pct_500m_caida_3dB": 0.36
+},
+{
+"id": "20240327post",
+"label": "2024-03-27 · 2024-03 (post)",
+"evento": "2024-03_marzo2024",
+"fecha": "2024-03-27",
+"momento": "post",
+"escena": "S1A_IW_GRDH_1SDV_20240327T091535_20240327T091600_053165_0670F5_rtc",
+"db_layer": "sar_db_20240327post",
+"w_layer": "sar_w_20240327post",
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.04,
+"dB_medio_lote": -7.94,
+"dB_dif_lote": 0.36,
+"pct_500m_caida_3dB": 0.1
+},
+{
+"id": "20250509pre",
+"label": "2025-05-09 · 2025-05 (pre)",
+"evento": "2025-05_mayo2025",
+"fecha": "2025-05-09",
+"momento": "pre",
+"escena": "S1A_IW_GRDH_1SDV_20250509T091529_20250509T091554_059115_rtc",
+"db_layer": "sar_db_20250509pre",
+"w_layer": "sar_w_20250509pre",
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.01,
+"dB_medio_lote": -9.78,
+"dB_dif_lote": -1.49,
+"pct_500m_caida_3dB": 1.34
+},
+{
+"id": "20250515pre",
+"label": "2025-05-15 · 2025-05 (pre)",
+"evento": "2025-05_mayo2025",
+"fecha": "2025-05-15",
+"momento": "pre",
+"escena": "S1C_IW_GRDH_1SDV_20250515T091414_20250515T091439_002339_rtc",
+"db_layer": "sar_db_20250515pre",
+"w_layer": "sar_w_20250515pre",
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.06,
+"dB_medio_lote": -11.96,
+"dB_dif_lote": -3.67,
+"pct_500m_caida_3dB": 16.16
+},
+{
+"id": "20250527post",
+"label": "2025-05-27 · 2025-05 (post)",
+"evento": "2025-05_mayo2025",
+"fecha": "2025-05-27",
+"momento": "post",
+"escena": "S1C_IW_GRDH_1SDV_20250527T091415_20250527T091440_002514_rtc",
+"db_layer": "sar_db_20250527post",
+"w_layer": "sar_w_20250527post",
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.0,
+"dB_medio_lote": -9.23,
+"dB_dif_lote": -0.94,
+"pct_500m_caida_3dB": 1.33
+},
+{
+"id": "20260604pre",
+"label": "2026-06-04 · 2026-06 (pre)",
+"evento": "2026-06_junio2026",
+"fecha": "2026-06-04",
+"momento": "pre",
+"escena": "S1D_IW_GRDH_1SDV_20260604T091439_20260604T091504_003084_00555E_rtc",
+"db_layer": "sar_db_20260604pre",
+"w_layer": "sar_w_20260604pre",
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.0,
+"dB_medio_lote": -10.49,
+"dB_dif_lote": -2.2,
+"pct_500m_caida_3dB": 15.51
+},
+{
+"id": "20260609post",
+"label": "2026-06-09 · 2026-06 (post)",
+"evento": "2026-06_junio2026",
+"fecha": "2026-06-09",
+"momento": "post",
+"escena": "S1A_IW_GRDH_1SDV_20260609T091501_20260609T091526_064890_082D55_rtc",
+"db_layer": "sar_db_20260609post",
+"w_layer": "sar_w_20260609post",
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.03,
+"dB_medio_lote": -5.57,
+"dB_dif_lote": 2.73,
+"pct_500m_caida_3dB": 0.21
+},
+{
+"id": "20260616post",
+"label": "2026-06-16 · 2026-06 (post)",
+"evento": "2026-06_junio2026",
+"fecha": "2026-06-16",
+"momento": "post",
+"escena": "S1D_IW_GRDH_1SDV_20260616T091440_20260616T091505_003259_005B26_rtc",
+"db_layer": "sar_db_20260616post",
+"w_layer": "sar_w_20260616post",
+"umbral_dB": -18.0,
+"pct_agua_lote": 0.0,
+"pct_agua_500m": 0.0,
+"pct_agua_10km": 0.0,
+"dB_medio_lote": -6.49,
+"dB_dif_lote": 1.8,
+"pct_500m_caida_3dB": 0.98
+}
+],
+"scenarios": [
+{
+"id": "P050_24h",
+"label": "50 mm en 24 h",
+"P_mm": 50.0,
+"dur_h": 24.0,
+"hyetograph_mm": [
+0.42,
+0.42,
+0.42,
+0.58,
+0.58,
+0.58,
+1.0,
+1.0,
+1.5,
+2.0,
+3.0,
+6.0,
+20.0,
+4.0,
+2.0,
+1.5,
+1.0,
+1.0,
+0.58,
+0.58,
+0.58,
+0.42,
+0.42,
+0.42
+],
+"Ks_mm_h": 10.0,
+"balance": {
+"lluvia_m3": 4930244.999999939,
+"infiltrado_m3": 4044342.485642902,
+"almacenado_final_m3": 0.00031522773433232136,
+"salida_bordes_m3": 59760.00000000057,
+"error_pct": 16.75662191314669
+},
+"h_layer": "rog_h_P050_24h",
+"d_layer": "rog_d_P050_24h",
+"v_layer": null,
+"hmax_lote_m": 0.001,
+"hmedia_lote_m": 0.0,
+"pct_lote_gt5cm": 0.0,
+"pct_lote_gt20cm": 0.0,
+"dur_max_lote_h": 0.0,
+"hmax_aoi_m": 0.002,
+"hmedia_aoi_m": 0.0,
+"pct_aoi_gt5cm": 0.0,
+"pct_aoi_gt20cm": 0.0,
+"infil_media_mm": 41.016,
+"escurrido_pct": 17.969,
+"almacenado_final_pct": 0.0,
+"t_sim_h": 30.0,
+"pasos": 1800,
+"wall_min": 1.192
+},
+{
+"id": "P060_2h",
+"label": "60 mm en 2 h",
+"P_mm": 60.0,
+"dur_h": 2.0,
+"hyetograph_mm": [
+2.0,
+2.0,
+3.0,
+4.0,
+4.0,
+9.0,
+15.0,
+9.0,
+4.0,
+3.0,
+3.0,
+2.0
+],
+"Ks_mm_h": 10.0,
+"balance": {
+"lluvia_m3": 5916294.000000001,
+"infiltrado_m3": 5195777.125529131,
+"almacenado_final_m3": 319474.739865622,
+"salida_bordes_m3": 71712.00000000001,
+"error_pct": 5.566493730792417
+},
+"h_layer": "rog_h_P060_2h",
+"d_layer": "rog_d_P060_2h",
+"v_layer": "rog_v_P060_2h",
+"hmax_lote_m": 0.062,
+"hmedia_lote_m": 0.028,
+"pct_lote_gt5cm": 4.0,
+"pct_lote_gt20cm": 0.0,
+"dur_max_lote_h": 2.825,
+"hmax_aoi_m": 0.349,
+"hmedia_aoi_m": 0.064,
+"pct_aoi_gt5cm": 27.311,
+"pct_aoi_gt20cm": 11.69,
+"infil_media_mm": 52.693,
+"escurrido_pct": 12.179,
+"almacenado_final_pct": 5.4,
+"t_sim_h": 8.0,
+"pasos": 3391,
+"wall_min": 2.387
+},
+{
+"id": "P100_24h",
+"label": "100 mm en 24 h",
+"P_mm": 100.0,
+"dur_h": 24.0,
+"hyetograph_mm": [
+0.83,
+0.83,
+0.83,
+1.17,
+1.17,
+1.17,
+2.0,
+2.0,
+3.0,
+4.0,
+6.0,
+12.0,
+40.0,
+8.0,
+4.0,
+3.0,
+2.0,
+2.0,
+1.17,
+1.17,
+1.17,
+0.83,
+0.83,
+0.83
+],
+"Ks_mm_h": 10.0,
+"balance": {
+"lluvia_m3": 9860489.999999978,
+"infiltrado_m3": 7543634.900747379,
+"almacenado_final_m3": 65524.48469106693,
+"salida_bordes_m3": 119519.99999999962,
+"error_pct": 21.61972289979034
+},
+"h_layer": "rog_h_P100_24h",
+"d_layer": "rog_d_P100_24h",
+"v_layer": "rog_v_P100_24h",
+"hmax_lote_m": 0.082,
+"hmedia_lote_m": 0.026,
+"pct_lote_gt5cm": 8.0,
+"pct_lote_gt20cm": 0.0,
+"dur_max_lote_h": 3.622,
+"hmax_aoi_m": 0.377,
+"hmedia_aoi_m": 0.069,
+"pct_aoi_gt5cm": 28.055,
+"pct_aoi_gt20cm": 14.559,
+"infil_media_mm": 76.504,
+"escurrido_pct": 23.496,
+"almacenado_final_pct": 0.665,
+"t_sim_h": 30.0,
+"pasos": 9074,
+"wall_min": 6.235
+},
+{
+"id": "P100_24h_sat",
+"label": "100 mm en 24 h · suelo saturado (Ks 2 mm/h)",
+"P_mm": 100.0,
+"dur_h": 24.0,
+"hyetograph_mm": [
+0.83,
+0.83,
+0.83,
+1.17,
+1.17,
+1.17,
+2.0,
+2.0,
+3.0,
+4.0,
+6.0,
+12.0,
+40.0,
+8.0,
+4.0,
+3.0,
+2.0,
+2.0,
+1.17,
+1.17,
+1.17,
+0.83,
+0.83,
+0.83
+],
+"Ks_mm_h": 1.9999999999999998,
+"balance": {
+"lluvia_m3": 9860489.99999991,
+"infiltrado_m3": 4705301.371464424,
+"almacenado_final_m3": 808049.5865674668,
+"salida_bordes_m3": 119519.99999999926,
+"error_pct": 42.874330200305046
+},
+"h_layer": "rog_h_P100_24h_sat",
+"d_layer": "rog_d_P100_24h_sat",
+"v_layer": "rog_v_P100_24h_sat",
+"hmax_lote_m": 0.483,
+"hmedia_lote_m": 0.203,
+"pct_lote_gt5cm": 76.0,
+"pct_lote_gt20cm": 48.0,
+"dur_max_lote_h": 9.588,
+"hmax_aoi_m": 0.843,
+"hmedia_aoi_m": 0.222,
+"pct_aoi_gt5cm": 54.304,
+"pct_aoi_gt20cm": 35.6,
+"infil_media_mm": 47.719,
+"escurrido_pct": 52.281,
+"almacenado_final_pct": 8.195,
+"t_sim_h": 30.0,
+"pasos": 11730,
+"wall_min": 8.841
+},
+{
+"id": "P150_24h",
+"label": "150 mm en 24 h",
+"P_mm": 150.0,
+"dur_h": 24.0,
+"hyetograph_mm": [
+1.25,
+1.25,
+1.25,
+1.75,
+1.75,
+1.75,
+3.0,
+3.0,
+4.5,
+6.0,
+9.0,
+18.0,
+60.0,
+12.0,
+6.0,
+4.5,
+3.0,
+3.0,
+1.75,
+1.75,
+1.75,
+1.25,
+1.25,
+1.25
+],
+"Ks_mm_h": 10.0,
+"balance": {
+"lluvia_m3": 14790734.999999972,
+"infiltrado_m3": 9964742.925007546,
+"almacenado_final_m3": 329524.4057097268,
+"salida_bordes_m3": 179279.9999999995,
+"error_pct": 29.188459324588724
+},
+"h_layer": "rog_h_P150_24h",
+"d_layer": "rog_d_P150_24h",
+"v_layer": "rog_v_P150_24h",
+"hmax_lote_m": 0.429,
+"hmedia_lote_m": 0.165,
+"pct_lote_gt5cm": 64.0,
+"pct_lote_gt20cm": 36.0,
+"dur_max_lote_h": 7.299,
+"hmax_aoi_m": 0.781,
+"hmedia_aoi_m": 0.202,
+"pct_aoi_gt5cm": 53.135,
+"pct_aoi_gt20cm": 33.9,
+"infil_media_mm": 101.057,
+"escurrido_pct": 32.628,
+"almacenado_final_pct": 2.228,
+"t_sim_h": 30.0,
+"pasos": 10724,
+"wall_min": 7.431
+},
+{
+"id": "P150_24h_sat",
+"label": "150 mm en 24 h · suelo saturado (Ks 2 mm/h)",
+"P_mm": 150.0,
+"dur_h": 24.0,
+"hyetograph_mm": [
+1.25,
+1.25,
+1.25,
+1.75,
+1.75,
+1.75,
+3.0,
+3.0,
+4.5,
+6.0,
+9.0,
+18.0,
+60.0,
+12.0,
+6.0,
+4.5,
+3.0,
+3.0,
+1.75,
+1.75,
+1.75,
+1.25,
+1.25,
+1.25
+],
+"Ks_mm_h": 1.9999999999999998,
+"balance": {
+"lluvia_m3": 14790734.999999871,
+"infiltrado_m3": 5695874.758670536,
+"almacenado_final_m3": 1374559.3142122538,
+"salida_bordes_m3": 179280.0000000007,
+"error_pct": 50.98476125166969
+},
+"h_layer": "rog_h_P150_24h_sat",
+"d_layer": "rog_d_P150_24h_sat",
+"v_layer": "rog_v_P150_24h_sat",
+"hmax_lote_m": 1.672,
+"hmedia_lote_m": 0.904,
+"pct_lote_gt5cm": 100.0,
+"pct_lote_gt20cm": 100.0,
+"dur_max_lote_h": 11.243,
+"hmax_aoi_m": 2.469,
+"hmedia_aoi_m": 0.68,
+"pct_aoi_gt5cm": 67.163,
+"pct_aoi_gt20cm": 54.091,
+"infil_media_mm": 57.765,
+"escurrido_pct": 61.49,
+"almacenado_final_pct": 9.293,
+"t_sim_h": 30.0,
+"pasos": 14178,
+"wall_min": 11.593
+},
+{
+"id": "P200_24h",
+"label": "200 mm en 24 h",
+"P_mm": 200.0,
+"dur_h": 24.0,
+"hyetograph_mm": [
+1.67,
+1.67,
+1.67,
+2.33,
+2.33,
+2.33,
+4.0,
+4.0,
+6.0,
+8.0,
+12.0,
+24.0,
+80.0,
+16.0,
+8.0,
+6.0,
+4.0,
+4.0,
+2.33,
+2.33,
+2.33,
+1.67,
+1.67,
+1.67
+],
+"Ks_mm_h": 10.0,
+"balance": {
+"lluvia_m3": 19720979.99999982,
+"infiltrado_m3": 11523133.718874684,
+"almacenado_final_m3": 740693.2367416275,
+"salida_bordes_m3": 239039.99999999988,
+"error_pct": 36.601188401304476
+},
+"h_layer": "rog_h_P200_24h",
+"d_layer": "rog_d_P200_24h",
+"v_layer": "rog_v_P200_24h",
+"hmax_lote_m": 0.765,
+"hmedia_lote_m": 0.448,
+"pct_lote_gt5cm": 96.0,
+"pct_lote_gt20cm": 88.0,
+"dur_max_lote_h": 8.302,
+"hmax_aoi_m": 1.775,
+"hmedia_aoi_m": 0.363,
+"pct_aoi_gt5cm": 62.912,
+"pct_aoi_gt20cm": 46.546,
+"infil_media_mm": 116.862,
+"escurrido_pct": 41.569,
+"almacenado_final_pct": 3.756,
+"t_sim_h": 30.0,
+"pasos": 12716,
+"wall_min": 9.238
+}
+]
+}
