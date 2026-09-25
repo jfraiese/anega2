@@ -33,7 +33,7 @@ from shapely.ops import linemerge
 
 from .common import (CRS_WGS84, bounds_wgs84, clip_raster, df_to_md, fetch_osm_waterways, plot_map, rasterize_geom,
                      read_raster, write_gtiff)
-from .paletas import HAND_CMAP, HAND_NORM
+from .paletas import HAND_CMAP, HAND_NORM, hand_para_figura
 from .project import Project
 
 MARGIN = 600.0  # m alrededor del buffer hidrológico
@@ -363,8 +363,10 @@ def export_outputs(p: Project, name: str, spec: dict, aoi: dict, dest: Path, key
             a = np.log10(np.maximum(a, spec["res"] ** 2) / 1e4); vmin, vmax = -1, 3
         if key == "sink":
             a = np.where(a <= 0, np.nan, a)
+        if key == "hand":
+            a = hand_para_figura(a)
         plot_map(a, tr, aoi, f"{title}\n{sub}", dest / f"10_terrain_{key}.png", cmap=cmap, vmin=vmin, vmax=vmax,
-                 cbar_label=title.split("(")[-1].rstrip(")"), extent_geom=ext, overlays=base_ov,
+                 cbar_label="m" if key == "hand" else title.split("(")[-1].rstrip(")"), extent_geom=ext, overlays=base_ov,
                  hillshade=hs if key in ("dem", "hand", "sink") else None,
                  norm=HAND_NORM if key == "hand" else None)
     a, _ = read_raster(src / "dem.tif")
@@ -376,6 +378,7 @@ def export_outputs(p: Project, name: str, spec: dict, aoi: dict, dest: Path, key
     plot_map(a, tr, aoi, f"Elevación y red de drenaje · buffer {hidro_lbl} · {lab}\nOSM arroyos (blanco) · red ≥{lab_k0} (celeste) · ≥{lab_k1} (azul) · cuenca del lote (verde)",
              dest / "10_terrain_overview_hidro.png", cmap="terrain", cbar_label="m snm", extent_geom=aoi["hidro"], overlays=ov, hillshade=hs, figsize=(10, 9))
     a, _ = read_raster(src / f"hand_{k0}.tif")
+    a = hand_para_figura(a)
     plot_map(a, tr, aoi, f"HAND (m) · buffer {hidro_lbl} · {lab}", dest / "10_terrain_hand_hidro.png", cmap=HAND_CMAP, norm=HAND_NORM,
              cbar_label="m", extent_geom=aoi["hidro"], overlays=ov, figsize=(10, 9))
     for v in [f"red_drenaje_{k0}", f"red_drenaje_{k1}", "cuenca_lote", "flowpath_lote", "depresiones_aoi", "hand_le1m", "hand_le2m"]:

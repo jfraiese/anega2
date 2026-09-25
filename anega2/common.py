@@ -115,7 +115,7 @@ def plot_map(arr, transform, aoi: dict, title: str, out_png: Path, cmap="viridis
         norm = BoundaryNorm([v - 0.5 for v in vals] + [vals[-1] + 0.5], cmap.N)
     im = ax.imshow(a, extent=ext, cmap=cmap, vmin=vmin, vmax=vmax, norm=norm, interpolation="nearest",
                    alpha=0.85 if hillshade is not None else 1.0)
-    im.cmap.set_bad(nodata_color, alpha=0)
+    cmap_local = im.cmap.copy(); cmap_local.set_bad(nodata_color, alpha=0); im.set_cmap(cmap_local)
     for g, kw in (overlays or []):
         gs = g if isinstance(g, gpd.GeoSeries) else gpd.GeoSeries(g, crs=crs)
         gs.plot(ax=ax, **kw)

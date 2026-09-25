@@ -1,7 +1,22 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
+import yaml
 
 from anega2 import paletas
+
+
+def test_cortes_desde_rules_yml():
+    rules = yaml.safe_load((Path(paletas.__file__).parent / "rules.yml").read_text())
+    esperado = sorted(rules["desborde"]["hand_min_m"]["umbrales"].values())
+    assert [hi for _, hi, _, _ in paletas.HAND_CLASES[:-1]] == esperado
+
+
+def test_hand_para_figura_recorta_arriba_del_techo():
+    a = np.array([0.1, 4.9, 5.0, 8.0, np.nan])
+    out = paletas.hand_para_figura(a)
+    assert out[:2].tolist() == [0.1, 4.9] and np.isnan(out[2:]).all()
 
 
 def test_hand_clase():

@@ -350,6 +350,13 @@ def run(p: Project) -> dict:
         (web / "veredicto.json").unlink(missing_ok=True)
     prim_cols = [cc for cc in ts.columns if "(primario)" in cc]
     kv = dict(zip(ts["variable"], ts[prim_cols[0]])) if prim_cols else {}
+    hand_min_lote = kv.get("hand_min_lote")
+    hand_min_lote = float(hand_min_lote) if hand_min_lote is not None else float("nan")
+    hand_incert = hand_incertidumbre(
+        hand_min_lote,
+        [float(v) for v in ts.loc[ts["variable"] == "hand_min_lote"].iloc[0, 1:]] if len(ts) and (ts["variable"] == "hand_min_lote").any() else [],
+        float(p.cfg.get("terreno", {}).get("sigma_dem_m", 1.0)),
+    ) if np.isfinite(hand_min_lote) else None
     stats = dict(
         nombre=p.name, titulo=p.titulo, crs=crs, aoi_m=aoi_m, hidro_m=hidro_m, res_m=res_m, generado=manifest["generado"],
         lote=dict(area_m2=round(lote.area, 1), centroide_wgs84=manifest["center"], E=round(c.x, 1), N=round(c.y, 1)),
@@ -359,9 +366,7 @@ def run(p: Project) -> dict:
         depresiones=_csv_rows(_first(out / "terrain_depresiones_aoi.csv", out / "terrain_depresiones_500m.csv")),
         verdict_md=vj.get("verdict_md", ""), field_md=vj.get("field_md", ""),
         jrc_extra=_jrc_extra(out / "jrc_stats.md"),
-        hand_incert=hand_incertidumbre(float(kv.get("hand_min_lote", "nan")),
-                                       [float(v) for v in ts.loc[ts["variable"] == "hand_min_lote"].iloc[0, 1:]] if len(ts) and (ts["variable"] == "hand_min_lote").any() else [],
-                                       float(p.cfg.get("terreno", {}).get("sigma_dem_m", 1.0))) if kv.get("hand_min_lote") is not None else None,
+        hand_incert=hand_incert,
     )
     json.dump(stats, open(web / "stats.json", "w"), ensure_ascii=False,
               default=lambda o: None if (isinstance(o, float) and np.isnan(o)) else str(o))
