@@ -230,7 +230,7 @@ def run(p: Project) -> dict:
     sar = pd.read_csv(sar_csv) if sar_csv.exists() else pd.DataFrame()
     scenes = []
     for _, r in sar.iterrows():
-        if not isinstance(r.get("escena"), str) or r["escena"] == "SIN COBERTURA":
+        if not isinstance(r.get("escena"), str) or r["escena"] in ("SIN COBERTURA", "SIN PASADA A TIEMPO"):
             continue
         db = _first(proc / "s1" / f"{r['escena']}_VV_db.tif", _glob1(proc / "s1", f"{r['escena']}_VV_db*.tif"))
         if db is None:

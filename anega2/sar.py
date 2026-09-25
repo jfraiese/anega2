@@ -119,6 +119,13 @@ def _pick_frame(items, lot84):
     return sorted(items, key=lambda i: (not _shape(i.geometry).contains(lot84), -_shape(i.geometry).area))[0]
 
 
+def plan_escenas(fechas, fecha_evento, pre_max_d: int, post_max_d: int):
+    """(pre, post): la última fecha en [evento − pre_max_d, evento) y la primera en [evento, evento + post_max_d]."""
+    pre = [d for d in fechas if 0 < (fecha_evento - d).days <= pre_max_d]
+    post = [d for d in fechas if 0 <= (d - fecha_evento).days <= post_max_d]
+    return (max(pre) if pre else None, min(post) if post else None)
+
+
 def run(p: Project) -> dict:
     import geopandas as gpd
     import matplotlib
@@ -129,7 +136,11 @@ def run(p: Project) -> dict:
 
     aoi = p.load_aoi(); crs = p.crs
     cfg = p.cfg["sar"]; fixed = float(cfg.get("umbral_fijo_dB", -18.0))
-    events = {e["id"]: e for e in cfg.get("eventos", [])}
+    from .clima import resolve_events
+    events = {e["id"]: e for e in resolve_events(p)}
+    if not events:
+        print("SAR: sin eventos para buscar; se omite la fase."); return {}
+    pre_max, post_max = int(cfg.get("pre_max_d", 12)), int(cfg.get("post_max_d", 3))
     dry = cfg["referencia_seca"]
     aoi_lab = f"{p.aoi_m:.0f} m"; hidro_lab = f"{p.hidro_m / 1000:.0f} km"
     RAW = p.data_raw / "s1"; PROC = p.data_proc / "s1"
@@ -144,15 +155,20 @@ def run(p: Project) -> dict:
     ref = ref_items[len(ref_items) // 2]
     plan = []  # (key, ev, item, date, tag)
     for key, ev in events.items():
-        d = pd.Timestamp(ev["fecha"]); win = int(ev.get("ventana_d", 10))
-        items = search(str((d - pd.Timedelta(days=win)).date()), str((d + pd.Timedelta(days=win)).date()), bbox)
+        d = pd.Timestamp(ev["fecha"])
+        items = search(str((d - pd.Timedelta(days=pre_max)).date()), str((d + pd.Timedelta(days=post_max)).date()), bbox)
         by_date = {}
         for it in items:
             by_date.setdefault(it.datetime.date(), []).append(it)
-        if not by_date:
+        pre, post = plan_escenas(list(by_date), d.date(), pre_max, post_max)
+        if pre is None and post is None and not by_date:
             plan.append((key, ev, None, None, None)); continue
-        for date, its in sorted(by_date.items()):
-            plan.append((key, ev, _pick_frame(its, lot84), date, "pre" if date < d.date() else "post"))
+        if pre is not None:
+            plan.append((key, ev, _pick_frame(by_date[pre], lot84), pre, "pre"))
+        if post is not None:
+            plan.append((key, ev, _pick_frame(by_date[post], lot84), post, "post"))
+        else:
+            plan.append((key, ev, None, None, "sin_post"))
     todo = [it for it in [ref] + [x[2] for x in plan if x[2] is not None] if not (RAW / f"{it.id}_VV.tif").exists()]
     n_scenes = 1 + sum(1 for x in plan if x[2] is not None)
     msg = (f"Sentinel-1 RTC (Planetary Computer): {n_scenes} escenas ({len(todo)} por bajar, ≈{16*len(todo)} MB; ventana {hidro_lab}):\n  "
@@ -182,7 +198,11 @@ def run(p: Project) -> dict:
     ext_geom = aoi["aoi"].buffer(2 * p.aoi_m)
     for key, ev, it, date, tag in plan:
         if it is None:
-            print(f"[{key}] sin escenas en ±{ev.get('ventana_d', 10)} d de {ev['fecha']}")
+            if tag == "sin_post":
+                print(f"[{key}] sin pasada de Sentinel-1 dentro de los {post_max} días posteriores")
+                rows.append(dict(evento=key, descr=ev.get("descr", ""), escena="SIN PASADA A TIEMPO", fecha=None, momento="post",
+                                 nota=f"sin pasada en 0-{post_max} días: no se puede saber si hubo agua")); continue
+            print(f"[{key}] sin escenas entre −{pre_max} y +{post_max} días de {ev['fecha']}")
             rows.append(dict(evento=key, descr=ev.get("descr", ""), escena="SIN COBERTURA", fecha=None)); continue
         d = pd.Timestamp(ev["fecha"])
         print(f"[{key}] {it.id} ({date}, {tag}, {it.properties.get('sat:orbit_state')})")
@@ -241,8 +261,8 @@ def run(p: Project) -> dict:
 
     lines = []
     for _, r in df.iterrows():
-        if r.get("escena") == "SIN COBERTURA":
-            lines.append(f"{r['evento']}: SIN COBERTURA Sentinel-1"); continue
+        if r.get("escena") in ("SIN COBERTURA", "SIN PASADA A TIEMPO"):
+            lines.append(f"{r['evento']}: {r['escena'].lower()}"); continue
         pn = r.get("pct_nueva_500m"); pn = 0 if pd.isna(pn) else pn
         lines.append(f"{r['evento']} {r['fecha']} ({r.get('momento', 'ref') if isinstance(r.get('momento'), str) else 'ref'}): "
                      f"umbral {r['umbral_dB']:.1f} dB · agua lote {r['pct_agua_lote']:.1f} % · {aoi_lab} {r['pct_agua_500m']:.1f} % "

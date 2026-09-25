@@ -20,12 +20,9 @@ clima:
 sar:
   umbral_fijo_dB: -18.0
   referencia_seca: {desde: "2023-01-15", hasta: "2023-03-31", descr: "Referencia seca: verano 2023 (sequía 2022-23)"}
-  eventos:
-    - {id: "2015-08_agosto2015", fecha: "2015-08-10", ventana_d: 12, descr: "Lluvias e inundaciones del 9-11 ago 2015 (norte bonaerense)"}
-    - {id: "2016-04_abril2016", fecha: "2016-04-10", ventana_d: 15, descr: "Lluvias e inundaciones abril 2016"}
-    - {id: "2024-03_marzo2024", fecha: "2024-03-12", ventana_d: 16, descr: "Temporal 12 mar 2024 (AMBA / norte bonaerense)"}
-    - {id: "2025-05_mayo2025", fecha: "2025-05-17", ventana_d: 12, descr: "Temporal 16-17 may 2025 (norte y oeste bonaerense)"}
-    - {id: "2026-06_junio2026", fecha: "2026-06-08", ventana_d: 10, descr: "Lluvias 7-8 jun 2026"}
+  eventos: auto                # auto = tormentas mayores desde 2014 según la fase clima; o una lista [{id, fecha, descr}]
+  pre_max_d: 12                # escena "antes": la última dentro de estos días previos
+  post_max_d: 3                # escena "después": la primera dentro de estos días posteriores (si no hay: "sin pasada a tiempo")
 lluvia:
   escenarios:
     - {id: P050_24h, P_mm: 50, dur_h: 24}

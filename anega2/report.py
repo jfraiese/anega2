@@ -40,10 +40,17 @@ def _num(v):
         return None
 
 
+def eventos_analizados(R: dict) -> list[str]:
+    s = R.get("sar")
+    if s is None or "evento" not in s:
+        return []
+    return list(dict.fromkeys(str(e).split("_")[0] for e in s["evento"] if e != "referencia_seca"))
+
+
 # ------------------------------------------------------------------ carga de resultados
 def load_results(p: Project) -> dict:
     o = p.out
-    R: dict = {"primary": None, "terrain": None, "key": {}, "deps": None, "jrc": None, "jrc_extra": "", "sar": None, "rog": None, "rog_params": {}}
+    R: dict = {"primary": None, "terrain": None, "key": {}, "deps": None, "jrc": None, "jrc_extra": "", "sar": None, "rog": None, "rog_params": {}, "clima": None}
     if (o / "terrain_primary.json").exists():
         R["primary"] = json.load(open(o / "terrain_primary.json"))
     if (o / "terrain_stats.csv").exists():
@@ -68,6 +75,7 @@ def load_results(p: Project) -> dict:
         R["rog"] = pd.read_csv(o / "rog_stats.csv")
     if (o / "rog_params.json").exists():
         R["rog_params"] = json.load(open(o / "rog_params.json"))
+    R["clima"] = json.load(open(o / "clima.json")) if (o / "clima.json").exists() else None
     return R
 
 
@@ -198,6 +206,8 @@ def _tabla_sar(R, p) -> str:
     colc = "pct_500m_caida_3dB" if "pct_500m_caida_3dB" in s_ else "pct_aoi_caida_3dB"
     s = f"| Evento | Escena (días respecto del evento) | Agua en lote / {aoi} / {p.hidro_m/1000:.0f} km | Entorno con caída > 3 dB vs. referencia seca |\n|---|---|---|---|\n"
     for _, r in s_.iterrows():
+        if r.get("escena") == "SIN PASADA A TIEMPO":
+            s += f"| {str(r['evento']).replace('_', ' ')} | **sin pasada a tiempo** (no se puede saber) | — | — |\n"; continue
         if r.get("escena") == "SIN COBERTURA" or pd.isna(r.get("fecha")):
             s += f"| {str(r['evento']).replace('_', ' ')} | **sin cobertura Sentinel-1** | — | — |\n"; continue
         dd = _num(r.get("dias_desde_evento"))
@@ -266,6 +276,13 @@ def _veredicto(ev: dict, ind: dict, R: dict, p: Project) -> str:
     falt = ev["lluvia_local"]["faltan"] + ev["desborde"]["faltan"]
     if falt:
         s += "- **Indicadores sin datos** (fase pendiente): " + "; ".join(falt) + ".\n"
+    cl = R.get("clima") or {}
+    if cl.get("disponible") and cl["gumbel"].get("era5") and "24" in cl["gumbel"]["era5"]:
+        from .clima import gumbel_T
+        t_e = gumbel_T(cl["gumbel"]["era5"]["24"], 100)
+        g_c = (cl["gumbel"].get("chirps") or {}).get("24")
+        s += (f"- **Frecuencia**: 100 mm en 24 h ocurre en promedio cada {f(t_e, 0)} años según ERA5"
+              + (f" (cada {f(gumbel_T(g_c, 100), 0)} según CHIRPS)" if g_c else "") + ".\n")
     s += ("- **Limitación principal**: la topografía disponible es de 30 m de píxel, con ruido vertical de décimas de metro y sin "
           "microrrelieve (zanjas, terraplenes, alcantarillas). A escala de lote la diferencia entre anegarse o no está en "
           "decenas de centímetros que el DEM no resuelve. **El veredicto es un diagnóstico regional que hay que confirmar en campo.**\n")
@@ -280,7 +297,7 @@ def _campo(ev: dict, R: dict, p: Project) -> str:
    claramente menor, el riesgo de desborde sube un nivel; si es mayor, baja.
 2. **Alcantarillas y terraplenes**: rutas, caminos y vías entre el lote y el drenaje cortan la planicie. Ver diámetro y estado de
    las alcantarillas y si algún terraplén actúa como dique del lado del lote.
-3. **Marcas de crecida y testimonio de vecinos**: preguntar por los eventos analizados ({', '.join(e['id'].split('_')[0] for e in p.cfg['sar']['eventos'])})
+3. **Marcas de crecida y testimonio de vecinos**: preguntar por los eventos analizados ({', '.join(eventos_analizados(R)) or 'las lluvias grandes recientes'})
    y por la napa (si en años húmedos el agua "brota"). Buscar marcas en postes, alambrados y troncos.
 4. **Napa y suelo**: en época húmeda, un pozo de 1-1,5 m para ver la profundidad de la napa; en la llanura pampeana el anegamiento
    por napa alta es tan frecuente como el desborde.
@@ -306,7 +323,7 @@ def build(p: Project) -> tuple[str, dict]:
     aoi = f"{p.aoi_m:.0f} m"
     rp = R["rog_params"]; prim = (R["primary"] or {}).get("primary", "—")
     rog_tab, rog_eff = _tabla_rog(R, p)
-    ev_ids = [e["id"] for e in p.cfg["sar"]["eventos"]]
+    ev_ids = eventos_analizados(R) or ["ninguno"]
     md = f"""# Riesgo de anegamiento — {p.titulo} · interpretación
 
 **Polígono**: {f(p.load_aoi()['lote'].area, 0)} m², centroide {lat:.6f}, {lon:.6f} (WGS84), CRS de trabajo {p.crs} ({p.crs_descr}).
@@ -362,7 +379,7 @@ Advertencias: no incluye la crecida que viene de fuera del dominio; las celdas s
 - **DEM de 30 m**: sin microrrelieve ni obras; los modelos de superficie (GLO-30, MDE-Ar) ven copas y techos; FABDEM los remueve
   estadísticamente. Datum vertical EGM2008 (FABDEM/GLO-30) o SRVN16 (IGN): irrelevante para alturas relativas.
 - **Sin calibración**: no hay aforos ni marcas de crecida; Manning y Green-Ampt son valores de literatura.
-- **Sin período de retorno**: los escenarios son "mm en 24 h".
+- **Período de retorno aproximado**: Gumbel sobre máximos anuales de ERA5 (28 km, subestima tormentas convectivas) y CHIRPS (5 km); no hay IDF local.
 - **Crecida del arroyo desde aguas arriba**: no simulada; el desborde se evalúa por HAND y por el registro satelital.
 - **Satélite**: Landsat no ve bajo nubes ni árboles; Sentinel-1 no ve bajo copas y cae días después del pico.
 
