@@ -102,8 +102,11 @@ def _read_cache(path: Path) -> pd.Series:
 def era5_horaria(lat, lon, cache_csv: Path, hasta: date, get=requests.get) -> pd.Series:
     s = _read_cache(cache_csv)
     ini = s.index.max().date() if len(s) else ERA5_DESDE
+    if hasta < ini:
+        return s
     partes = [s[s.index < pd.Timestamp(ini)]] if len(s) else []
     d0 = ini
+    fetched_any = False
     try:
         while d0 <= hasta:
             d1 = min(hasta, date(d0.year + 10, 1, 1) - timedelta(days=1))
@@ -111,10 +114,11 @@ def era5_horaria(lat, lon, cache_csv: Path, hasta: date, get=requests.get) -> pd
                                            hourly="precipitation", models="era5", timezone=TZ), timeout=120)
             r.raise_for_status(); partes.append(parse_openmeteo(r.json()))
             print(f"  ERA5 {d0} → {d1}")
+            fetched_any = True
             d0 = d1 + timedelta(days=1)
     except Exception as e:  # noqa: BLE001
         print(f"  [aviso] ERA5 (Open-Meteo) no respondió: {e}; se usa lo que haya en caché")
-    if not partes:
+    if not fetched_any:
         return s
     out = pd.concat(partes); out = out[~out.index.duplicated(keep="last")].sort_index()
     cache_csv.parent.mkdir(parents=True, exist_ok=True); out.rename_axis("t").to_csv(cache_csv)
@@ -145,10 +149,23 @@ def chirps_diaria(lat, lon, cache_csv: Path, hasta: date, hilos: int, leer=_leer
     s = _read_cache(cache_csv).dropna()
     faltan = [d.date() for d in pd.date_range(desde, hasta, freq="D") if pd.Timestamp(d) not in s.index]
     if faltan:
-        print(f"  CHIRPS: {len(faltan)} días por leer ({hilos} hilos)…")
-        with ThreadPoolExecutor(hilos) as ex:
-            vals = list(ex.map(lambda d: leer(d, lon, lat), faltan))
-        nuevos = pd.Series({pd.Timestamp(d): v for d, v in zip(faltan, vals) if v is not None}, dtype=float, name="mm")
+        # Probe the first missing day to detect full outages early
+        probe_val = leer(faltan[0], lon, lat)
+        if probe_val is None:
+            print("  [aviso] CHIRPS no respondió; se usa lo que haya en caché (se reintenta en la próxima corrida)")
+            return s.reindex(pd.date_range(desde, hasta, freq="D")).rename("mm")
+        # First day succeeded, add it and continue with the rest
+        nuevos_dict = {pd.Timestamp(faltan[0]): probe_val}
+        if len(faltan) > 1:
+            print(f"  CHIRPS: {len(faltan) - 1} días por leer ({hilos} hilos)…")
+            with ThreadPoolExecutor(hilos) as ex:
+                vals = list(ex.map(lambda d: leer(d, lon, lat), faltan[1:]))
+            nuevos_dict.update({pd.Timestamp(d): v for d, v in zip(faltan[1:], vals) if v is not None})
+            # Warn about failed days
+            n_fallos = sum(1 for v in vals if v is None)
+            if n_fallos > 0:
+                print(f"  [aviso] CHIRPS: {n_fallos} días sin dato (se reintentan en la próxima corrida)")
+        nuevos = pd.Series(nuevos_dict, dtype=float, name="mm")
         s = pd.concat([s, nuevos]).sort_index()
         cache_csv.parent.mkdir(parents=True, exist_ok=True); s.rename_axis("t").to_csv(cache_csv)
     return s.reindex(pd.date_range(desde, hasta, freq="D")).rename("mm")
