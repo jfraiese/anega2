@@ -37,4 +37,4 @@ lluvia:
   psi_m: 0.17
   dtheta: 0.15
   drenaje_h: 24                # horas de simulación después de la lluvia
-  presupuesto_min: 60          # tope de tiempo de cómputo por escenario
+  presupuesto_min: 180         # tope por escenario; 72 h tarda ~35 min

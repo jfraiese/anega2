@@ -159,10 +159,9 @@ def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dic
         fp = Ks * (1 + psi_dt / F[core]) * dt
         inf = np.minimum(fp, np.maximum(h[core] - H_FILM, 0.0))
         h[core] -= inf; F[core] += inf; infil_tot[core] += inf
-        core_sum_before = float(h[core].sum())
         of.overland_flow(dt=dt)
-        out_tot += (core_sum_before - float(h[core].sum())) * cell_a          # flujo core -> borde (el borde es fijo, no acumula estado)
-        out_tot += float(np.maximum(h[bdy] - H_FILM, 0).sum()) * cell_a       # lluvia caída directo sobre el borde
+        out_tot += float(grid.calc_flux_div_at_node(of._q)[core].sum()) * cell_a * dt  # caudal core -> borde (divergencia de flujo)
+        out_tot += float(np.maximum(h[bdy] - H_FILM, 0).sum()) * cell_a                # lluvia caída directo sobre el borde
         h[bdy] = H_FILM
         np.maximum(hmax, h, out=hmax)
         dur += (h > H_THRESH) * dt
@@ -179,15 +178,21 @@ def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dic
     hmax2 = np.flipud(np.maximum(hmax - H_FILM, 0).reshape(rows, cols)).astype("float32")
     dur2 = np.flipud(dur.reshape(rows, cols) / 3600).astype("float32")
     write_gtiff(hmax_path, hmax2, tr, p.crs, nodata=None); write_gtiff(dur_path, dur2, tr, p.crs, nodata=None)
+    n_frames_ok = int(round(sc["t_end_h"])) + 1
+    cortado = len(frames) < n_frames_ok
+    if cortado:
+        print(f"    [{name}] [aviso] simulación cortada por presupuesto a t={t/3600:.1f} h: se repite el último cuadro hasta {sc['t_end_h']:g} h")
+        frames += [frames[-1]] * (n_frames_ok - len(frames))
+        rain_acc += [rain_acc[-1]] * (n_frames_ok - len(rain_acc))
     fr = np.stack(frames)
     np.savez_compressed(frames_path, h_cm=fr, t_h=np.arange(len(fr)), lluvia_acum_mm=np.array(rain_acc))
-    n_core = len(core)
     vol_rain = rain_tot * cell_a * grid.number_of_nodes; vol_inf = float(infil_tot[core].sum()) * cell_a
     vol_store = float(np.maximum(h[core] - H_FILM, 0).sum()) * cell_a
     meta = dict(steps=steps, t_sim_h=t / 3600, wall_s=el, rain_mm=rain_tot * 1000, Ks_mm_h=Ks * 3.6e6,
                 infil_mean_mm=float(infil_tot[core].mean() * 1000), hyetograph_mm=hyet.round(2).tolist(),
                 balance=dict(lluvia_m3=vol_rain, infiltrado_m3=vol_inf, almacenado_final_m3=vol_store, salida_bordes_m3=out_tot,
-                             error_pct=100 * (vol_rain - vol_inf - vol_store - out_tot) / max(vol_rain, 1e-9)))
+                             error_pct=100 * (vol_rain - vol_inf - vol_store - out_tot) / max(vol_rain, 1e-9)),
+                cortado=cortado, horas_simuladas=t / 3600)
     meta.update(lote_por_hora(fr, lot))
     json.dump(meta, open(meta_path, "w"), indent=1)
     b = meta["balance"]
@@ -219,9 +224,8 @@ def run(p: Project) -> dict:
     hs, _ = load_dem_window(p, primary, aoi, "hillshade.tif")
     scen = build_scenarios(cfg)
     budget_s = 60 * float(cfg.get("presupuesto_min", 60))
-    nproc = cfg.get("procesos", "auto"); nproc = max(1, (os.cpu_count() or 4) - 2) if nproc == "auto" else int(nproc)
-    lot_n = rasterize_geom(aoi["lote"], z.shape, tr, all_touched=True)
-    jobs = [(p, name, sc, z, tr, params, budget_s, lot_n, "") for name, sc in scen.items()]
+    nproc = cfg.get("procesos", "auto"); nproc = max(1, (os.cpu_count() or 4) - 2) if nproc == "auto" else max(1, int(nproc))
+    jobs = [(p, name, sc, z, tr, params, budget_s, lot, "") for name, sc in scen.items()]
     print(f"{len(jobs)} escenarios · {nproc} en paralelo")
     with ProcessPoolExecutor(nproc) as ex:
         results = dict(ex.map(_worker, jobs))          # "res" ya está usado para la resolución del DEM
