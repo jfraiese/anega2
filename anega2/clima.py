@@ -269,4 +269,10 @@ def resolve_events(p: Project) -> list[dict]:
     if not j.get("disponible"):
         print("  [aviso] sar.eventos = auto pero no hay out/clima.json con datos (correr la fase clima)")
         return []
-    return [dict(id=e["id"], fecha=e["fecha"], descr=f"Tormenta de {e['era5_72']:.0f} mm en 72 h (ERA5)") for e in j["eventos"]["sentinel"]]
+    def _descr(e: dict) -> str:
+        if e.get("era5_72") is not None:
+            return f"Tormenta de {e['era5_72']:.0f} mm en 72 h (ERA5)"
+        if e.get("chirps_72") is not None:
+            return f"Tormenta de {e['chirps_72']:.0f} mm en 72 h (CHIRPS)"
+        return "Tormenta (sin dato de mm)"
+    return [dict(id=e["id"], fecha=e["fecha"], descr=_descr(e)) for e in j["eventos"]["sentinel"]]
