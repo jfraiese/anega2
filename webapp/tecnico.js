@@ -255,8 +255,8 @@ async function init() {
   $('#opacity').oninput = e => setOpacity(parseFloat(e.target.value));
   $('#btn-fit').onclick = () => { const o = S.layers.lote; if (o) S.map.fitBounds(o.layer.getBounds().pad(4)); };
 }
-// al salir se apagan sólo los rasters (las capas vectoriales, p. ej. el lote, quedan como referencia en la vista Resumen)
-function hide() { prendidas = Object.values(S.layers).filter(o => o.on && o.def.type === 'image').map(o => o.def.id); prendidas.forEach(id => hide_(id, false)); S.map.off('click', onMapClick); $('#legend').innerHTML = ''; }
+// al salir se apaga todo lo prendido salvo el lote (queda como referencia en la vista Resumen); show() lo restaura
+function hide() { prendidas = Object.values(S.layers).filter(o => o.on && o.def.id !== 'lote').map(o => o.def.id); prendidas.forEach(id => hide_(id, false)); show_('lote', false); S.map.off('click', onMapClick); $('#legend').innerHTML = ''; }
 function show() { prendidas.forEach(id => show_(id, false)); prendidas = []; S.map.on('click', onMapClick); refresh(); }
 return { init, show, hide };
 })();

@@ -49,7 +49,7 @@ async function init() {
   const hayResumen = await Resumen.init(S.map, S).catch(e => { console.error('vista Resumen:', e); return false; });
   document.querySelectorAll('#vista button').forEach(b => (b.onclick = () => { if (!b.disabled) vista(b.dataset.v); }));
   document.getElementById('r-tecnico').onclick = e => { e.preventDefault(); vista('tecnico'); };
-  if (!hayResumen) { const b = document.querySelector('#vista [data-v="resumen"]'); b.disabled = true; b.title = 'falta correr la fase lluvia y web'; }
+  if (!hayResumen) { const b = document.querySelector('#vista [data-v="resumen"]'); b.disabled = true; b.title = `falta la simulación: corré anega2 run ${S.project} --fase lluvia web`; }
   vista(hayResumen ? 'resumen' : 'tecnico');
   if (S.layers.lote) S.map.fitBounds(S.layers.lote.layer.getBounds().pad(4));
 }

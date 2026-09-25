@@ -1,6 +1,6 @@
 /* anega2 · datos de simulación de la vista Resumen: descarga, descompresión, caché, interpolación y pintado. */
 const Sim = (() => {
-  let base = '', idx = null; const cache = new Map();
+  let base = '', idx = null; const cache = new Map(), CACHE_MAX = 6;   // ~6 escenarios en memoria
   async function gunzip(url) {
     const r = await fetch(base + url); if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
     const raw = new Uint8Array(await r.arrayBuffer());
@@ -17,15 +17,15 @@ const Sim = (() => {
   function partir(buf, k) { const out = []; for (let i = 0; i < k; i++) out.push(buf.subarray(i * n(), (i + 1) * n())); return out; }
   async function frames(id) {
     if (!idx.escenarios[id]) throw new Error(`escenario ${id}: no está en sim/index.json`);
-    if (!cache.has(id)) {
-      const p = (async () => {
-        const e = idx.escenarios[id]; const [h, c] = await Promise.all([gunzip(e.url), gunzip(e.cert_url)]);
-        const cc = partir(c, 2 * e.horas);
-        return { h: partir(h, e.horas), c5: cc.slice(0, e.horas), c20: cc.slice(e.horas) };
-      })();
-      cache.set(id, p); p.catch(() => cache.delete(id));     // no cachear un fallo de red
-    }
-    return cache.get(id);
+    if (cache.has(id)) { const p = cache.get(id); cache.delete(id); cache.set(id, p); return p; }   // LRU: al final = más reciente
+    const p = (async () => {
+      const e = idx.escenarios[id]; const [h, c] = await Promise.all([gunzip(e.url), gunzip(e.cert_url)]);
+      const cc = partir(c, 2 * e.horas);
+      return { h: partir(h, e.horas), c5: cc.slice(0, e.horas), c20: cc.slice(e.horas) };
+    })();
+    cache.set(id, p); p.catch(() => { if (cache.get(id) === p) cache.delete(id); });   // no cachear un fallo de red
+    while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);             // desalojar el más viejo
+    return p;
   }
   const idDe = (P, dur, suelo) => `P${String(P).padStart(3, '0')}_${dur}h${suelo === 'saturado' ? '_sat' : ''}`;
   async function mezcla(P, dur, suelo) {

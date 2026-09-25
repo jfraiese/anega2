@@ -1,6 +1,6 @@
 /* anega2 · vista «Resumen» (¿Dónde hay agua?): lluvia → agua en el mapa hora a hora, certeza entre DEMs e historia de lluvias. */
 const Resumen = (() => {
-  let map, S, R = { dur: 24, suelo: 'normal', u: 5, t: 0, P: 100 }, overlay = null, canvas = document.createElement('canvas'), grilla = null, updGrilla = () => {}, charts = {}, s1layer = null, seq = 0;
+  let map, S, R = { dur: 24, suelo: 'normal', u: 5, t: 0, P: 100 }, overlay = null, canvas = document.createElement('canvas'), grilla = null, updGrilla = () => {}, charts = {}, s1layer = null, seq = 0, seqEv = 0, debounce = null;
   const $ = s => document.querySelector(s);
   const DUR = [[3, 'Chaparrón 3 h'], [24, 'Día de lluvia'], [72, 'Temporal 3 días']];
   const SUELO = [['normal', 'Suelo normal'], ['saturado', 'Saturado']];
@@ -20,7 +20,7 @@ const Resumen = (() => {
     const mio = ++seq;                                   // el deslizador dispara muchas llamadas: sólo vale la última
     let m;
     try { m = await Sim.mezcla(R.P, R.dur, R.suelo); } catch (e) {
-      if (mio !== seq) return; console.error(e); $('#r-frase').textContent = `No hay simulación para esta combinación (${e.message}).`; return;
+      if (mio !== seq) return; console.error(e); $('#r-frase').textContent = `No hay simulación para esta combinación (${e.message}): corré anega2 run ${S.project} --fase lluvia web.`; return;
     }
     if (mio !== seq) return;
     R.mezcla = m;
@@ -92,32 +92,39 @@ const Resumen = (() => {
   function eventos() {
     const c = clima(), box = $('#r-eventos'); box.innerHTML = '';
     if (!c.disponible || !c.eventos) return;
-    (c.eventos.historicos || []).filter(ev => ev.era5_72 != null).forEach(ev => {
+    const todos = new Map();                            // históricos ∪ era Sentinel-1, sin repetir, más reciente primero
+    [...(c.eventos.historicos || []), ...(c.eventos.sentinel || [])].forEach(ev => { if (ev && ev.id && !todos.has(ev.id)) todos.set(ev.id, ev); });
+    [...todos.values()].filter(ev => ev.era5_72 != null).sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0)).forEach(ev => {
       const b = document.createElement('button'); b.className = 'ev'; b.textContent = `${ev.fecha} · ${Lib.fmt(ev.era5_72)} mm en 72 h`;
       b.onclick = () => { box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); detalleEvento(ev); }; box.appendChild(b);
     });
   }
-  function radar(ev) {
-    const t = S.stats.sar || { columns: [], rows: [] }, ix = k => t.columns.indexOf(k);
-    const filas = t.rows.filter(r => r[ix('evento')] === ev.id);
-    if (!filas.length) return ev.fecha < '2014-10-03' ? 'No había radar Sentinel-1 en esa fecha.' : 'Esa fecha no se analizó con radar.';
-    if (filas.some(r => r[ix('escena')] === 'SIN PASADA A TIEMPO')) return 'El radar no pasó a tiempo: no se puede saber si hubo agua.';
-    const post = filas.find(r => r[ix('momento')] === 'post'); if (!post) return 'No hay escena del radar después de la tormenta.';
-    const d = post[ix('dias_desde_evento')], pct = post[ix('pct_agua_lote')];
+  function sarFilas() {                                 // stats.sar {columns, rows[][]} → objetos planos para Lib.matchRadar
+    const t = S.stats.sar || { columns: [], rows: [] };
+    return (t.rows || []).map(r => (Array.isArray(r) ? Object.fromEntries(t.columns.map((c, j) => [c, r[j]])) : r));
+  }
+  function radar(ev, m) {
+    if (!m) return ev.fecha < '2014-10-03' ? 'No había radar Sentinel-1 en esa fecha.' : 'Esa fecha no se analizó con radar.';
+    const filas = m.filas;
+    if (filas.some(r => r.escena === 'SIN PASADA A TIEMPO')) return 'El radar no pasó a tiempo: no se puede saber si hubo agua.';
+    const post = filas.find(r => r.momento === 'post'); if (!post) return 'No hay escena del radar después de la tormenta.';
+    const d = post.dias_desde_evento, pct = post.pct_agua_lote;
     return pct > 0 ? `El radar pasó ${d} días después y vio agua en el ${Lib.fmt(pct)} % del lote.` : `El radar pasó ${d} días después y no vio agua en el lote.`;
   }
   async function detalleEvento(ev) {
-    const box = $('#r-evento');
+    const mio = ++seqEv, box = $('#r-evento');
     const P = Math.min(250, Math.max(25, Math.round(ev.era5_72 / 5) * 5));
     let modelo;
     try {
       const m = await Sim.mezcla(P, 72, 'normal'), s = Lib.loteSerie(m.h, Sim.idx.lote_idx, 5), hp = s.horaPico;
       modelo = s.hmax[hp] < 5 ? 'el modelo no pone agua en el lote' : `el modelo pone hasta ${s.hmax[hp]} cm en el ${Lib.fmt(s.pct[hp])} % del lote`;
     } catch (e) { console.error(e); modelo = 'no hay simulación de 72 h para compararla'; }
+    if (mio !== seqEv) return;                           // llegó tarde: ya se eligió otro evento
+    const m = Lib.matchRadar(ev, sarFilas());
     box.innerHTML = `<b>${ev.fecha}</b>: ${Lib.fmt(ev.era5_72)} mm en 72 h según ERA5` + (ev.chirps_72 != null ? `, ${Lib.fmt(ev.chirps_72)} mm según CHIRPS` : '')
-      + `. Con esa lluvia ${modelo}. ${radar(ev)}`;
+      + `. Con esa lluvia ${modelo}. ${radar(ev, m)}`;
     if (s1layer) { map.removeLayer(s1layer); s1layer = null; }
-    const sc = (S.manifest.scenes || []).find(x => x.evento === ev.id && x.momento === 'post');
+    const sc = m && (S.manifest.scenes || []).find(x => x.evento === m.evento && x.momento === 'post');
     if (sc && sc.w_layer && S.layers[sc.w_layer]) {
       const b = document.createElement('button'); b.textContent = 'Ver en el mapa lo que vio el radar';
       b.onclick = () => { if (s1layer) map.removeLayer(s1layer); s1layer = S.layers[sc.w_layer].layer.addTo(map); };
@@ -167,7 +174,7 @@ const Resumen = (() => {
     riesgo();
     const redraw = () => { pills($('#r-dur'), durs, R.dur, x => { R.dur = x; redraw(); actualizar(false); }); pills($('#r-suelo'), suelos, R.suelo, x => { R.suelo = x; redraw(); actualizar(); }); pills($('#r-umbral'), UMB, R.u, x => { R.u = x; redraw(); actualizar(); }); };
     redraw();
-    $('#r-mm').oninput = e => { R.P = +e.target.value; $('#r-mm-v').textContent = `${R.P} mm`; actualizar(); };
+    $('#r-mm').oninput = e => { R.P = +e.target.value; $('#r-mm-v').textContent = `${R.P} mm`; clearTimeout(debounce); debounce = setTimeout(() => actualizar(), 120); };
     $('#r-t').oninput = e => { R.t = +e.target.value; pintarHora(); };
     $('#r-play').onclick = play; eventos(); grillaPixeles();
     await actualizar(false); return true;

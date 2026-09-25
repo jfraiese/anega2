@@ -71,6 +71,23 @@
     return cab + cuerpo + (fr ? ' ' + fr : '');
   }
 
-  const Lib = { fmt, pickNeighbors, lerp, loteSerie, nivelCerteza, retornoAnios, durTexto, frase };
+  // evento de lluvia → filas SAR del mismo evento: primero por id; si no, por fecha de tormenta
+  // (fecha de la escena − dias_desde_evento) a ±3 días de ev.fecha. Filas sin fecha (SIN PASADA) sólo por id.
+  const dia = f => Date.parse(String(f).slice(0, 10) + 'T00:00:00Z') / 864e5;
+  function matchRadar(ev, rows) {
+    const rs = (rows || []).filter(r => r && r.evento && r.evento !== 'referencia_seca');
+    let evento = rs.some(r => r.evento === ev.id) ? ev.id : null;
+    if (!evento && ev.fecha) {
+      let mejor = Infinity;
+      for (const r of rs) {
+        if (!r.fecha || typeof r.dias_desde_evento !== 'number' || !Number.isFinite(r.dias_desde_evento)) continue;
+        const dd = Math.abs(dia(r.fecha) - r.dias_desde_evento - dia(ev.fecha));
+        if (dd <= 3 && dd < mejor) { mejor = dd; evento = r.evento; }
+      }
+    }
+    return evento ? { evento, filas: rs.filter(r => r.evento === evento) } : null;
+  }
+
+  const Lib = { fmt, pickNeighbors, lerp, loteSerie, nivelCerteza, retornoAnios, durTexto, frase, matchRadar };
   if (typeof module !== 'undefined' && module.exports) module.exports = Lib; else root.Lib = Lib;
 })(this);

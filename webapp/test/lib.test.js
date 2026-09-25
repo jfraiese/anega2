@@ -53,3 +53,27 @@ test('frase con un solo modelo', () => {
   assert.match(Lib.frase({ P: 100, dur: 24, hmaxCm: 8, pct: 10, horasConAgua: 2, nivel: 'poco', soloUnModelo: true, Tera5: 5 }),
     /\(incierto: sólo 1 de 3 modelos de terreno\)/);
 });
+
+const SAR = [
+  { evento: 'referencia_seca', escena: 'S1A_ref', fecha: '2015-01-05', momento: null, dias_desde_evento: null },
+  { evento: '2015-08_agosto2015', escena: 'S1A_pre', fecha: '2015-08-06', momento: 'pre', dias_desde_evento: -4 },
+  { evento: '2015-08_agosto2015', escena: 'S1A_post', fecha: '2015-08-18', momento: 'post', dias_desde_evento: 8, pct_agua_lote: 3 },
+  { evento: '2016-04_abril2016', escena: 'SIN PASADA A TIEMPO', fecha: null, momento: 'post' },
+];
+test('matchRadar por id', () => {
+  const m = Lib.matchRadar({ id: '2016-04_abril2016', fecha: '2016-04-02' }, SAR);
+  assert.strictEqual(m.evento, '2016-04_abril2016'); assert.strictEqual(m.filas.length, 1);
+});
+test('matchRadar por fecha de tormenta (escena − días)', () => {
+  const m = Lib.matchRadar({ id: '2015-08-10_era5', fecha: '2015-08-10' }, SAR);
+  assert.strictEqual(m.evento, '2015-08_agosto2015'); assert.strictEqual(m.filas.length, 2);
+  assert.strictEqual(Lib.matchRadar({ id: 'x', fecha: '2015-08-13' }, SAR).evento, '2015-08_agosto2015');
+});
+test('matchRadar no empareja a más de 3 días', () => {
+  assert.strictEqual(Lib.matchRadar({ id: '2015-08-14_era5', fecha: '2015-08-14' }, SAR), null);
+  assert.strictEqual(Lib.matchRadar({ id: '2015-01-05_era5', fecha: '2015-01-05' }, SAR), null);
+});
+test('matchRadar: fila SIN PASADA sin fecha sólo por id', () => {
+  assert.strictEqual(Lib.matchRadar({ id: '2016-04-01_era5', fecha: '2016-04-01' }, SAR), null);
+  assert.strictEqual(Lib.matchRadar({ id: 'y' }, []), null);
+});
