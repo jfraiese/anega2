@@ -161,6 +161,16 @@ def update_index() -> list:
     return rows
 
 
+def _vista_resumen(p: Project, B: Builder) -> None:
+    """Cuadros horarios 3857 + certeza (vista Resumen del visor). No debe abortar la fase web: un fallo
+    (falta la fase lluvia, DEM incompatible, etc.) se registra como aviso y el resto de la fase sigue."""
+    from . import websim
+    try:
+        websim.run(p)
+    except Exception as e:  # noqa: BLE001
+        B.warn(f"vista Resumen no generada: {e}")
+
+
 def run(p: Project) -> dict:
     aoi = p.load_aoi(); out = p.out; proc = p.data_proc; web = p.web
     crs = p.crs; aoi_m = p.aoi_m; hidro_m = p.hidro_m
@@ -357,8 +367,7 @@ def run(p: Project) -> dict:
         cap = next((v + q.stem[len(k):].replace("_", " ") for k, v in caps.items() if q.name.startswith(k)), q.stem)
         figs.append(dict(file=f"figures/{q.name}", caption=cap))
     json.dump(figs, open(web / "figures.json", "w"), ensure_ascii=False)
-    from . import websim
-    websim.run(p)
+    _vista_resumen(p, B)
     idx = update_index()
     size_mb = sum(f.stat().st_size for f in web.rglob("*") if f.is_file()) / 1e6
     p.summary_line("FASE WEB (datos del visor)", [

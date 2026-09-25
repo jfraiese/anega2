@@ -1,10 +1,14 @@
 import gzip
+import json
 
+import geopandas as gpd
 import numpy as np
+import rasterio
 from rasterio.transform import from_origin
 from shapely.geometry import box
 
-from anega2 import websim
+from anega2 import webdata, websim
+from anega2.project import Project
 
 CRS = "EPSG:5347"; TR = from_origin(5_550_000, 6_190_000, 30, 30)
 
@@ -52,3 +56,56 @@ def test_escribir_bin_gz(tmp_path):
     a = np.arange(24, dtype=np.uint8).reshape(2, 3, 4)
     websim.escribir_gz(tmp_path / "x.bin.gz", a)
     assert np.frombuffer(gzip.decompress((tmp_path / "x.bin.gz").read_bytes()), np.uint8).reshape(2, 3, 4).tolist() == a.tolist()
+
+
+def test_vista_resumen_no_propaga_error(tmp_path, monkeypatch):
+    """webdata._vista_resumen no debe abortar la fase web si websim.run() falla: se registra como aviso."""
+    p = Project(name="x", cfg={}, dir=tmp_path)
+    B = webdata.Builder(p)
+
+    def _boom(_p):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(websim, "run", _boom)
+    webdata._vista_resumen(p, B)  # no debe propagar
+    assert any("vista Resumen no generada" in w and "boom" in w for w in B.warnings)
+
+
+def _proyecto_sintetico(tmp_path, monkeypatch) -> Project:
+    """Proyecto sintético mínimo (grilla 4x4, 2 DEM, 1 escenario) para probar websim.run() de punta a punta."""
+    monkeypatch.setattr(Project, "lot_centroid_wgs84", lambda self: (-59.5, -34.4))
+    cfg = dict(buffers=dict(lluvia_m=1000, aoi_m=50, hidro_m=500, grilla_m=100),
+               lluvia=dict(grilla=dict(P_mm=[100], dur_h=[24], suelo=["normal"])), crs=CRS)
+    p = Project(name="synt", cfg=cfg, dir=tmp_path)
+
+    for dem in ("demA", "demB"):
+        d = p.data_proc / "terrain" / dem; d.mkdir(parents=True, exist_ok=True)
+        with rasterio.open(d / "dem_breach.tif", "w", driver="GTiff", height=4, width=4, count=1,
+                            dtype="float32", crs=CRS, transform=TR, nodata=-9999) as dst:
+            dst.write(np.full((4, 4), 10.0, "float32"), 1)
+    (p.out / "terrain_primary.json").write_text(json.dumps({"primary": "demA"}))
+
+    lote = box(5_550_050, 6_189_930, 5_550_070, 6_189_950)
+    gpd.GeoDataFrame({"name": ["lote", "aoi", "hidro"]}, geometry=[lote, lote.buffer(20), lote.buffer(80)],
+                      crs=CRS).to_file(p.aoi_gpkg, layer="aoi", driver="GPKG")
+
+    rogd = p.data_proc / "rog"; (rogd / "ens").mkdir(parents=True, exist_ok=True)
+    h_cm = np.zeros((2, 4, 4), np.uint8); h_cm[1] = 12
+    np.savez_compressed(rogd / "P100_24h_frames.npz", h_cm=h_cm, t_h=np.arange(2), lluvia_acum_mm=np.array([0.0, 100.0]))
+    (rogd / "P100_24h_meta.json").write_text(json.dumps({"cortado": True}))
+    np.savez_compressed(rogd / "ens" / "P100_24h__demB_frames.npz", h_cm=h_cm, t_h=np.arange(2), lluvia_acum_mm=np.array([0.0, 100.0]))
+    (p.out / "rog_ensamble.json").write_text(json.dumps({"dems": ["demB"], "ids": ["P100_24h"], "primario": "demA"}))
+    (p.out / "clima.json").write_text(json.dumps({"disponible": True}))
+    return p
+
+
+def test_run_cortado_y_ensamble(tmp_path, monkeypatch):
+    """websim.run(): pasa 'cortado' de <id>_meta.json a index.json y arma la lista de DEM del ensamble."""
+    p = _proyecto_sintetico(tmp_path, monkeypatch)
+    websim.run(p)
+
+    idx = json.loads((p.web / "sim" / "index.json").read_text())
+    esc = idx["escenarios"]["P100_24h"]
+    assert esc["cortado"] is True
+    assert esc["ensamble"] == ["demA", "demB"]
+    assert (p.web / "sim" / "P100_24h.bin.gz").exists() and (p.web / "sim" / "P100_24h_cert.bin.gz").exists()
