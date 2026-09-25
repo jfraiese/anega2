@@ -357,6 +357,8 @@ def run(p: Project) -> dict:
         cap = next((v + q.stem[len(k):].replace("_", " ") for k, v in caps.items() if q.name.startswith(k)), q.stem)
         figs.append(dict(file=f"figures/{q.name}", caption=cap))
     json.dump(figs, open(web / "figures.json", "w"), ensure_ascii=False)
+    from . import websim
+    websim.run(p)
     idx = update_index()
     size_mb = sum(f.stat().st_size for f in web.rglob("*") if f.is_file()) / 1e6
     p.summary_line("FASE WEB (datos del visor)", [
