@@ -344,6 +344,8 @@ def run(p: Project) -> dict:
     vj = json.load(open(out / "veredicto.json")) if (out / "veredicto.json").exists() else {}
     if vj:
         shutil.copy(out / "veredicto.json", web / "veredicto.json")
+    else:
+        (web / "veredicto.json").unlink(missing_ok=True)
     prim_cols = [cc for cc in ts.columns if "(primario)" in cc]
     kv = dict(zip(ts["variable"], ts[prim_cols[0]])) if prim_cols else {}
     stats = dict(
