@@ -106,6 +106,16 @@ def ficha_ids(cfg: dict) -> list[str]:
     return list(cfg.get("ficha") or [s["id"] for s in scenario_specs(cfg) if s["dur_h"] == 24])
 
 
+def ensemble_ids(cfg: dict) -> list[str]:
+    e = cfg.get("ensamble")
+    return [] if not e else [scen_id(P, d, s == "saturado") for P in e["P_mm"] for d in e["dur_h"] for s in e["suelo"]]
+
+
+def ensemble_dems(p: Project, primary: str) -> list[str]:
+    base = p.data_proc / "terrain"
+    return sorted(q.name for q in base.iterdir() if q.is_dir() and q.name != primary and (q / "dem_breach.tif").exists()) if base.exists() else []
+
+
 def load_dem_window(p: Project, primary: str, aoi: dict, name: str = "dem_breach.tif"):
     half = float(p.buffers["lluvia_m"])
     c = aoi["lote"].centroid
@@ -226,6 +236,13 @@ def run(p: Project) -> dict:
     budget_s = 60 * float(cfg.get("presupuesto_min", 60))
     nproc = cfg.get("procesos", "auto"); nproc = max(1, (os.cpu_count() or 4) - 2) if nproc == "auto" else max(1, int(nproc))
     jobs = [(p, name, sc, z, tr, params, budget_s, lot, "") for name, sc in scen.items()]
+    ens_ids = [i for i in ensemble_ids(cfg) if i in scen]; ens_dems = ensemble_dems(p, primary)
+    for dem in ens_dems:
+        z_d, tr_d = load_dem_window(p, dem, aoi)
+        if z_d.shape != z.shape:
+            print(f"  [aviso] {dem}: grilla {z_d.shape} ≠ {z.shape}; se omite del ensamble"); continue
+        jobs += [(p, f"{i}__{dem}", scen[i], z_d, tr_d, params, budget_s, lot, "ens") for i in ens_ids]
+    json.dump(dict(dems=ens_dems, ids=ens_ids, primario=primary), open(out / "rog_ensamble.json", "w"), indent=1)
     print(f"{len(jobs)} escenarios · {nproc} en paralelo")
     with ProcessPoolExecutor(nproc) as ex:
         results = dict(ex.map(_worker, jobs))          # "res" ya está usado para la resolución del DEM
