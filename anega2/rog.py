@@ -6,9 +6,11 @@ Infiltración: Green-Ampt por celda (Ks, ψ, Δθ de cfg['lluvia']). Escenarios 
 más copias "_sat" (suelo saturado, Ks_sat_mm_h) para los ids de cfg['lluvia'].saturado.
 Hietograma de bloque alterno con relaciones profundidad-duración genéricas (sin IDF local: sin período de retorno).
 
-Salidas: data/proc/rog/<esc>_hmax_dom.tif, <esc>_dur5cm_dom.tif, <esc>_meta.json;
+Salidas: data/proc/rog/<esc>_hmax_dom.tif, <esc>_dur5cm_dom.tif, <esc>_meta.json, <esc>_frames.npz;
+         data/proc/rog/ens/<id>__<dem>_hmax_dom.tif, <id>__<dem>_dur5cm_dom.tif, <id>__<dem>_meta.json, <id>__<dem>_frames.npz
+         (ensamble con los otros DEM, para los escenarios clave de cfg['lluvia'].ensamble);
          out/rog_<esc>_hmax_aoi.tif, out/rog_<esc>_dur5cm_aoi.tif, out/40_rog_<esc>.png, out/40_rog_<esc>_dom.png,
-         out/rog_stats.csv/.md, out/rog_params.json, out/rog_<esc>_agua5cm.geojson/.kml
+         out/rog_stats.csv/.md, out/rog_params.json, out/rog_<esc>_agua5cm.geojson/.kml, out/rog_ensamble.json
 """
 from __future__ import annotations
 
@@ -237,12 +239,14 @@ def run(p: Project) -> dict:
     nproc = cfg.get("procesos", "auto"); nproc = max(1, (os.cpu_count() or 4) - 2) if nproc == "auto" else max(1, int(nproc))
     jobs = [(p, name, sc, z, tr, params, budget_s, lot, "") for name, sc in scen.items()]
     ens_ids = [i for i in ensemble_ids(cfg) if i in scen]; ens_dems = ensemble_dems(p, primary)
+    usados = []; omitidos = []
     for dem in ens_dems:
         z_d, tr_d = load_dem_window(p, dem, aoi)
         if z_d.shape != z.shape:
-            print(f"  [aviso] {dem}: grilla {z_d.shape} ≠ {z.shape}; se omite del ensamble"); continue
+            print(f"  [aviso] {dem}: grilla {z_d.shape} ≠ {z.shape}; se omite del ensamble"); omitidos.append(dem); continue
         jobs += [(p, f"{i}__{dem}", scen[i], z_d, tr_d, params, budget_s, lot, "ens") for i in ens_ids]
-    json.dump(dict(dems=ens_dems, ids=ens_ids, primario=primary), open(out / "rog_ensamble.json", "w"), indent=1)
+        usados.append(dem)
+    json.dump(dict(dems=usados, omitidos=omitidos, ids=ens_ids, primario=primary), open(out / "rog_ensamble.json", "w"), indent=1)
     print(f"{len(jobs)} escenarios · {nproc} en paralelo")
     with ProcessPoolExecutor(nproc) as ex:
         results = dict(ex.map(_worker, jobs))          # "res" ya está usado para la resolución del DEM
