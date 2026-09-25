@@ -95,7 +95,7 @@ def read_window(path: Path, geom):
 # --- Plot -----------------------------------------------------------------
 def plot_map(arr, transform, aoi: dict, title: str, out_png: Path, cmap="viridis", vmin=None, vmax=None,
              cbar_label="", extent_geom=None, overlays=None, discrete_labels=None, figsize=(9, 8),
-             hillshade=None, nodata_color="white"):
+             hillshade=None, nodata_color="white", norm=None):
     """PNG con raster + lote (rojo) + buffer AOI (naranja). overlays: [(GeoSeries/geom, kwargs)]."""
     import matplotlib
     matplotlib.use("Agg")
@@ -109,7 +109,6 @@ def plot_map(arr, transform, aoi: dict, title: str, out_png: Path, cmap="viridis
     if hillshade is not None:
         ax.imshow(hillshade, extent=ext, cmap="gray", vmin=0, vmax=255, interpolation="nearest")
     a = np.ma.masked_invalid(arr) if np.issubdtype(np.asarray(arr).dtype, np.floating) else np.ma.asarray(arr)
-    norm = None
     if discrete_labels:
         vals = sorted(discrete_labels)
         cmap = ListedColormap([discrete_labels[v][1] for v in vals])

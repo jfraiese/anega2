@@ -26,6 +26,7 @@ from rasterio.warp import Resampling, calculate_default_transform, reproject, tr
 from rasterio.windows import from_bounds
 
 from .common import CRS_WGS84
+from .paletas import HAND_CLASES, hand_clase, hand_incertidumbre
 from .project import PROJECTS_DIR, Project
 from .rog import ficha_ids, scenario_specs
 
@@ -225,8 +226,9 @@ def run(p: Project) -> dict:
             res_m = abs(s.transform.a)
         B.raster("dem", "Elevación (m snm)", "Terreno", T / "dem.tif", "terrain", None, None, "m", description=f"DEM primario {primary} ({res_m:.0f} m).")
         hand_src = _first(T / "hand_05km2.tif", _glob1(T, "hand_*.tif"))
-        B.raster("hand", "HAND · altura sobre el drenaje (m)", "Terreno", hand_src, "RdYlBu", 0, 6, "m", visible=True,
-                 description="Altura sobre la celda de drenaje a la que escurre cada celda. Rojo = bajo.")
+        B.raster("hand", "HAND · altura sobre el drenaje (m)", "Terreno", hand_src, transform_fn=hand_clase, visible=False,
+                 categorical={i: (lab, col) for i, (_, _, col, lab) in enumerate(HAND_CLASES)},
+                 description="Cuántos metros tendría que subir el agua desde el drenaje para llegar. Rojo = bajo; sin color = más de 5 m.")
         B.raster("slope", "Pendiente (%)", "Terreno", T / "slope_deg.tif", "magma", 0, 3, "%", transform_fn=sl2pct)
         B.raster("twi", "TWI · índice de humedad", "Terreno", T / "twi.tif", "Blues", 5, 15, "")
         B.raster("sink", "Depresiones cerradas · profundidad (m)", "Terreno", T / "sink_depth.tif", "PuBu", 0, 0.5, "m", mask_below=0.0)
@@ -357,6 +359,9 @@ def run(p: Project) -> dict:
         depresiones=_csv_rows(_first(out / "terrain_depresiones_aoi.csv", out / "terrain_depresiones_500m.csv")),
         verdict_md=vj.get("verdict_md", ""), field_md=vj.get("field_md", ""),
         jrc_extra=_jrc_extra(out / "jrc_stats.md"),
+        hand_incert=hand_incertidumbre(float(kv.get("hand_min_lote", "nan")),
+                                       [float(v) for v in ts.loc[ts["variable"] == "hand_min_lote"].iloc[0, 1:]] if len(ts) and (ts["variable"] == "hand_min_lote").any() else [],
+                                       float(p.cfg.get("terreno", {}).get("sigma_dem_m", 1.0))) if kv.get("hand_min_lote") is not None else None,
     )
     json.dump(stats, open(web / "stats.json", "w"), ensure_ascii=False,
               default=lambda o: None if (isinstance(o, float) and np.isnan(o)) else str(o))

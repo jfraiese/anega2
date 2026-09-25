@@ -12,6 +12,8 @@ dem:
   fuentes: [ign30, ign5, glo30, fabdem]
   primario: auto               # auto = fidelidad vs. arroyos OSM con preferencia por terreno desnudo; o ign30|glo30|fabdem
   umbrales_red_km2: [0.5, 2.0]
+terreno:
+  sigma_dem_m: 1.0              # error vertical típico del DEM para el HAND del lote (se usa el mayor entre esto y la dispersión entre DEM)
 clima:
   fuentes: [era5, chirps]      # lluvia histórica en el centroide del lote
   hilos_chirps: 16             # lecturas CHIRPS en paralelo (la primera vez ≈ 25 min para 1981-hoy)
