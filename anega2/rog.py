@@ -13,7 +13,9 @@ Salidas: data/proc/rog/<esc>_hmax_dom.tif, <esc>_dur5cm_dom.tif, <esc>_meta.json
 from __future__ import annotations
 
 import json
+import os
 import time
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import geopandas as gpd
@@ -33,6 +35,19 @@ DD_SHAPE_SHORT = {10 / 120: 0.25, 20 / 120: 0.40, 30 / 120: 0.55, 60 / 120: 0.75
 H_FILM = 1e-5      # película mínima que requiere el esquema de de Almeida (h_init de OverlandFlow)
 ALPHA = 0.7        # coeficiente de estabilidad de OverlandFlow
 H_THRESH = 0.05    # umbral de "anegado" (m) para la duración y las manchas
+
+
+def encode_frame(h_m: np.ndarray) -> np.ndarray:
+    return np.clip(np.round((h_m - H_FILM) * 100), 0, 255).astype(np.uint8)
+
+
+def lote_por_hora(frames: np.ndarray, lot: np.ndarray) -> dict:
+    v = frames[:, lot].astype(float)
+    hmax = v.max(axis=1)
+    return dict(hmax_lote_cm=[int(x) for x in hmax],
+                pct_lote_gt5cm=[round(100 * float(x), 1) for x in (v > 5).mean(axis=1)],
+                pct_lote_gt20cm=[round(100 * float(x), 1) for x in (v > 20).mean(axis=1)],
+                horas_con_agua_lote=int((hmax > 5).sum()), hora_pico_lote=int(hmax.argmax()))
 
 
 def alternating_block(P_mm: float, dur_h: float, dt_h: float, ratios: dict) -> np.ndarray:
@@ -98,13 +113,14 @@ def load_dem_window(p: Project, primary: str, aoi: dict, name: str = "dem_breach
     return read_window(p.data_proc / "terrain" / primary / name, box(c.x - half, c.y - half, c.x + half, c.y + half))
 
 
-def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dict, budget_s: float) -> dict:
+def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dict, budget_s: float, lot: np.ndarray, subdir: str = "") -> dict:
     from landlab import RasterModelGrid
     from landlab.components import OverlandFlow
 
-    proc = p.data_proc / "rog"; proc.mkdir(parents=True, exist_ok=True)
+    proc = p.data_proc / "rog" / subdir; proc.mkdir(parents=True, exist_ok=True)
     hmax_path = proc / f"{name}_hmax_dom.tif"; dur_path = proc / f"{name}_dur5cm_dom.tif"; meta_path = proc / f"{name}_meta.json"
-    if hmax_path.exists() and dur_path.exists() and meta_path.exists():
+    frames_path = proc / f"{name}_frames.npz"
+    if hmax_path.exists() and dur_path.exists() and meta_path.exists() and frames_path.exists():
         with rasterio.open(hmax_path) as s:
             hmax = s.read(1)
         with rasterio.open(dur_path) as s:
@@ -114,7 +130,7 @@ def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dic
     rows, cols = z.shape
     dx = tr.a
     grid = RasterModelGrid((rows, cols), xy_spacing=dx)
-    zz = np.flipud(z).copy()                      # Landlab: fila 0 = sur
+    zz = np.flipud(z).astype(np.float64)           # Landlab: fila 0 = sur; OverlandFlow exige float64
     zz[np.isnan(zz)] = np.nanmax(zz) + 10          # nodata -> pared alta
     grid.add_field("topographic__elevation", zz.ravel(), at="node", clobber=True)
     grid.add_zeros("surface_water__depth", at="node", clobber=True)
@@ -130,24 +146,29 @@ def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dic
     infil_tot = np.zeros_like(h); rain_tot = 0.0; out_tot = 0.0
     bdy = grid.boundary_nodes; core = grid.core_nodes; cell_a = dx * dx
     t = 0.0; steps = 0; t0 = time.time(); next_log = 3600
+    frames = [encode_frame(np.flipud(h.reshape(rows, cols)))]; rain_acc = [0.0]; next_frame = 3600.0
     while t < t_end:
         k = int(t // dt_block)
         rain = hyet[k] / 1000 / dt_block if k < len(hyet) else 0.0
         dt = float(of.calc_time_step())
         if not np.isfinite(dt):
             dt = 60.0
-        dt = min(dt, t_end - t, dt_block - (t - k * dt_block) if k < len(hyet) else t_end - t, 60.0)
+        dt = min(dt, t_end - t, dt_block - (t - k * dt_block) if k < len(hyet) else t_end - t, next_frame - t, 60.0)
         dt = max(dt, 0.1)
         h += rain * dt; rain_tot += rain * dt
         fp = Ks * (1 + psi_dt / F[core]) * dt
         inf = np.minimum(fp, np.maximum(h[core] - H_FILM, 0.0))
         h[core] -= inf; F[core] += inf; infil_tot[core] += inf
+        core_sum_before = float(h[core].sum())
         of.overland_flow(dt=dt)
-        out_tot += float(np.maximum(h[bdy] - H_FILM, 0).sum()) * cell_a
+        out_tot += (core_sum_before - float(h[core].sum())) * cell_a          # flujo core -> borde (el borde es fijo, no acumula estado)
+        out_tot += float(np.maximum(h[bdy] - H_FILM, 0).sum()) * cell_a       # lluvia caída directo sobre el borde
         h[bdy] = H_FILM
         np.maximum(hmax, h, out=hmax)
         dur += (h > H_THRESH) * dt
         t += dt; steps += 1
+        if t >= next_frame - 1e-6:
+            frames.append(encode_frame(np.flipud(h.reshape(rows, cols)))); rain_acc.append(rain_tot * 1000); next_frame += 3600.0
         if t >= next_log:
             el = time.time() - t0
             print(f"    [{name}] t={t/3600:5.1f} h · pasos {steps} · dt={dt:5.1f} s · h_max dominio {h[core].max():.2f} m · {el:5.0f} s")
@@ -158,18 +179,26 @@ def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dic
     hmax2 = np.flipud(np.maximum(hmax - H_FILM, 0).reshape(rows, cols)).astype("float32")
     dur2 = np.flipud(dur.reshape(rows, cols) / 3600).astype("float32")
     write_gtiff(hmax_path, hmax2, tr, p.crs, nodata=None); write_gtiff(dur_path, dur2, tr, p.crs, nodata=None)
+    fr = np.stack(frames)
+    np.savez_compressed(frames_path, h_cm=fr, t_h=np.arange(len(fr)), lluvia_acum_mm=np.array(rain_acc))
     n_core = len(core)
-    vol_rain = rain_tot * cell_a * n_core; vol_inf = float(infil_tot[core].sum()) * cell_a
+    vol_rain = rain_tot * cell_a * grid.number_of_nodes; vol_inf = float(infil_tot[core].sum()) * cell_a
     vol_store = float(np.maximum(h[core] - H_FILM, 0).sum()) * cell_a
     meta = dict(steps=steps, t_sim_h=t / 3600, wall_s=el, rain_mm=rain_tot * 1000, Ks_mm_h=Ks * 3.6e6,
                 infil_mean_mm=float(infil_tot[core].mean() * 1000), hyetograph_mm=hyet.round(2).tolist(),
                 balance=dict(lluvia_m3=vol_rain, infiltrado_m3=vol_inf, almacenado_final_m3=vol_store, salida_bordes_m3=out_tot,
                              error_pct=100 * (vol_rain - vol_inf - vol_store - out_tot) / max(vol_rain, 1e-9)))
+    meta.update(lote_por_hora(fr, lot))
     json.dump(meta, open(meta_path, "w"), indent=1)
     b = meta["balance"]
     print(f"  [{name}] listo: {steps} pasos, {el/60:.1f} min, lluvia {rain_tot*1000:.0f} mm, infiltración media {meta['infil_mean_mm']:.0f} mm · "
           f"infiltrado {100*b['infiltrado_m3']/b['lluvia_m3']:.0f} %, almacenado {100*b['almacenado_final_m3']/b['lluvia_m3']:.0f} %")
     return dict(hmax=hmax2, dur=dur2, **meta)
+
+
+def _worker(args):
+    p, name, sc, z, tr, params, budget_s, lot, subdir = args
+    return name, run_scenario(p, name, sc, z, tr, params, budget_s, lot, subdir)
 
 
 def _first(*paths: Path) -> Path | None:
@@ -190,6 +219,12 @@ def run(p: Project) -> dict:
     hs, _ = load_dem_window(p, primary, aoi, "hillshade.tif")
     scen = build_scenarios(cfg)
     budget_s = 60 * float(cfg.get("presupuesto_min", 60))
+    nproc = cfg.get("procesos", "auto"); nproc = max(1, (os.cpu_count() or 4) - 2) if nproc == "auto" else int(nproc)
+    lot_n = rasterize_geom(aoi["lote"], z.shape, tr, all_touched=True)
+    jobs = [(p, name, sc, z, tr, params, budget_s, lot_n, "") for name, sc in scen.items()]
+    print(f"{len(jobs)} escenarios · {nproc} en paralelo")
+    with ProcessPoolExecutor(nproc) as ex:
+        results = dict(ex.map(_worker, jobs))          # "res" ya está usado para la resolución del DEM
     aoi_lab = f"{p.aoi_m:.0f} m"
     ov = []
     osm = _first(out / "osm_waterways.geojson", out / "osm_waterways_10km.geojson")
@@ -199,9 +234,10 @@ def run(p: Project) -> dict:
     if red:
         ov.append((gpd.read_file(red).geometry, dict(color="deepskyblue", lw=0.8)))
     rows = []
+    fids = ficha_ids(cfg)
     for name, sc in scen.items():
         print(f"== {name}: {sc['label']} ==")
-        r = run_scenario(p, name, sc, z, tr, params, budget_s)
+        r = results[name]
         hmax, dur = r["hmax"], r["dur"]
         clip_raster(p.data_proc / "rog" / f"{name}_hmax_dom.tif", aoi["aoi"], out / f"rog_{name}_hmax_aoi.tif", all_touched=True, nodata=-9999)
         clip_raster(p.data_proc / "rog" / f"{name}_dur5cm_dom.tif", aoi["aoi"], out / f"rog_{name}_dur5cm_aoi.tif", all_touched=True, nodata=-9999)
@@ -215,6 +251,8 @@ def run(p: Project) -> dict:
                          escurrido_pct=100 * (1 - r["balance"]["infiltrado_m3"] / r["balance"]["lluvia_m3"]),
                          almacenado_final_pct=100 * r["balance"]["almacenado_final_m3"] / r["balance"]["lluvia_m3"],
                          t_sim_h=r["t_sim_h"], pasos=r["steps"], wall_min=r["wall_s"] / 60))
+        if name not in fids:
+            continue
         plot_map(np.where(hmax > 0.02, hmax, np.nan), tr, aoi,
                  f"Lámina máxima (m) · {sc['label']} · Green-Ampt Ks={sc['Ks_mm_h']:g} mm/h · n={params['manning']}\n"
                  f"DEM {primary} {res:.0f} m · se muestran celdas con h > 2 cm",
