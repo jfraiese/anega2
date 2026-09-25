@@ -12,6 +12,11 @@ dem:
   fuentes: [ign30, ign5, glo30, fabdem]
   primario: auto               # auto = fidelidad vs. arroyos OSM con preferencia por terreno desnudo; o ign30|glo30|fabdem
   umbrales_red_km2: [0.5, 2.0]
+clima:
+  fuentes: [era5, chirps]      # lluvia histórica en el centroide del lote
+  hilos_chirps: 16             # lecturas CHIRPS en paralelo (la primera vez ≈ 25 min para 1981-hoy)
+  eventos_n: 10                # tormentas mayores a listar
+  separacion_d: 7              # días mínimos entre tormentas distintas
 sar:
   umbral_fijo_dB: -18.0
   referencia_seca: {desde: "2023-01-15", hasta: "2023-03-31", descr: "Referencia seca: verano 2023 (sequía 2022-23)"}

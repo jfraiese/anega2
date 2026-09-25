@@ -10,6 +10,7 @@ Salidas: data/raw/clima/era5_<lat>_<lon>.csv (caché horaria), cache/chirps/<lat
 """
 from __future__ import annotations
 
+import json
 import math
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
@@ -18,6 +19,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import requests
+
+from .common import df_to_md
+from .project import Project
 
 TS = [2, 5, 10, 25, 50, 100]
 EULER = 0.5772156649
@@ -169,3 +173,100 @@ def chirps_diaria(lat, lon, cache_csv: Path, hasta: date, hilos: int, leer=_leer
         s = pd.concat([s, nuevos]).sort_index()
         cache_csv.parent.mkdir(parents=True, exist_ok=True); s.rename_axis("t").to_csv(cache_csv)
     return s.reindex(pd.date_range(desde, hasta, freq="D")).rename("mm")
+
+
+# ------------------------------------------------------------------ fase
+DUR_ERA5 = [3, 24, 72]
+DUR_CHIRPS = [24, 72]
+S1_DESDE = "2014-10-03"
+
+
+def _diaria(s: pd.Series) -> pd.Series:
+    return s.resample("D").sum(min_count=1) if len(s) and _paso_h(s) < 24 else s
+
+
+def _evento(t, era5, chirps) -> dict:
+    t = pd.Timestamp(t); d = t.normalize()
+    e24 = era5[t - pd.Timedelta(hours=71):t].rolling(24, min_periods=1).sum().max() if len(era5) else np.nan
+    e72 = era5[t - pd.Timedelta(hours=71):t].sum() if len(era5) else np.nan
+    c = chirps[d - pd.Timedelta(days=2):d] if len(chirps) else pd.Series(dtype=float)
+    r = lambda v: None if v is None or not np.isfinite(v) else round(float(v), 1)  # noqa: E731
+    return dict(id=f"{d.date()}_era5", fecha=str(d.date()), era5_24=r(e24), era5_72=r(e72),
+                chirps_24=r(c.max()) if len(c) else None, chirps_72=r(c.sum(min_count=1)) if len(c) else None)
+
+
+def build(era5: pd.Series, chirps: pd.Series, cfg: dict) -> dict:
+    era5 = era5.dropna() if len(era5) else era5
+    fuentes = {"era5": (era5, DUR_ERA5), "chirps": (chirps.dropna() if len(chirps) else chirps, DUR_CHIRPS)}
+    if all(len(s) == 0 for s, _ in fuentes.values()):
+        return {"disponible": False}
+    out = dict(disponible=True, fuentes={}, gumbel={}, retorno=[], maximos={})
+    for nom, (s, durs) in fuentes.items():
+        if len(s) == 0:
+            out["fuentes"][nom] = out["gumbel"][nom] = out["maximos"][nom] = None; continue
+        s = s.asfreq("h" if nom == "era5" else "D")
+        out["fuentes"][nom] = dict(desde=str(s.index.min().date()), hasta=str(s.index.max().date()), anios=int(s.index.year.nunique()))
+        out["gumbel"][nom] = {}; out["maximos"][nom] = {}
+        for dur in durs:
+            am = rolling_max_anual(s, dur)
+            if len(am) < 10:
+                continue
+            fit = gumbel_fit(am.mm.values); ic = gumbel_ic(am.mm.values, TS)
+            out["gumbel"][nom][str(dur)] = fit
+            out["maximos"][nom][str(dur)] = [[int(a), round(float(m), 1), str(pd.Timestamp(f).date())] for a, m, f in am.itertuples(index=False)]
+            out["retorno"] += [dict(fuente=nom, dur_h=dur, T=T, mm=round(gumbel_mm(fit, T), 1), lo=round(ic[T][0], 1), hi=round(ic[T][1], 1)) for T in TS]
+    base = era5.asfreq("h") if len(era5) else _diaria(chirps).asfreq("D")
+    s72 = base.rolling(72 if len(era5) else 3, min_periods=1).sum()
+    n, sep = int(cfg.get("eventos_n", 10)), int(cfg.get("separacion_d", 7))
+    ev = lambda desde: [_evento(t, era5.asfreq("h") if len(era5) else era5, _diaria(chirps)) for t in desagrupar(s72, n, sep, desde)]  # noqa: E731
+    out["eventos"] = dict(historicos=ev(None), sentinel=ev(S1_DESDE))
+    return out
+
+
+def run(p: Project) -> dict:
+    cfg = p.cfg.get("clima", {}); fuentes = cfg.get("fuentes", ["era5", "chirps"])
+    lon, lat = p.lot_centroid_wgs84(); hasta = date.today() - timedelta(days=6)
+    era5 = era5_horaria(lat, lon, p.data_raw / "clima" / f"era5_{lat:.3f}_{lon:.3f}.csv", hasta) if "era5" in fuentes else pd.Series(dtype=float)
+    chirps = pd.Series(dtype=float)
+    if "chirps" in fuentes:
+        clat, clon = chirps_pixel(lat, lon); cache = p.cache / "chirps" / f"{clat:.3f}_{clon:.3f}.csv"
+        if cache.exists() or p.confirm(f"Leer CHIRPS diario 1981-hoy para el píxel {clat}, {clon} (≈ 16.000 lecturas, ~25 min la primera vez; queda en {cache})"):
+            chirps = chirps_diaria(lat, lon, cache, date.today() - timedelta(days=45), int(cfg.get("hilos_chirps", 16)))
+    j = build(era5, chirps, cfg)
+    if j.get("disponible"):
+        j["punto"] = dict(lat=round(lat, 5), lon=round(lon, 5))
+        if j["fuentes"].get("chirps"):
+            j["fuentes"]["chirps"]["pixel"] = list(chirps_pixel(lat, lon))
+    o = p.out
+    json.dump(j, open(o / "clima.json", "w"), ensure_ascii=False, indent=1)
+    if not j.get("disponible"):
+        print("CLIMA: sin datos de lluvia (sin red o fuentes caídas); el visor lo informa y sar con eventos: auto se saltea.")
+        return j
+    pd.DataFrame({"era5_mm": _diaria(era5) if len(era5) else pd.Series(dtype=float), "chirps_mm": chirps}).rename_axis("fecha").to_csv(o / "clima_serie_diaria.csv", float_format="%.1f")
+    am = pd.DataFrame([dict(fuente=f, dur_h=int(d), anio=a, mm=m, fecha=fe) for f, g in j["maximos"].items() if g for d, rows in g.items() for a, m, fe in rows])
+    am.to_csv(o / "clima_maximos_anuales.csv", index=False)
+    rt = pd.DataFrame(j["retorno"]); rt.to_csv(o / "clima_retorno.csv", index=False)
+    evs = pd.DataFrame([dict(tipo=k, **e) for k, lst in j["eventos"].items() for e in lst]); evs.to_csv(o / "clima_eventos.csv", index=False)
+    (o / "clima_stats.md").write_text(
+        "# Lluvia histórica en el lote\n\n"
+        f"ERA5 (Open-Meteo, 0,25°): {j['fuentes'].get('era5') or 'sin datos'} · CHIRPS v2 (0,05°): {j['fuentes'].get('chirps') or 'sin datos'}.\n"
+        "Período de retorno por Gumbel (momentos) sobre máximos anuales; intervalo 90 % por bootstrap. ERA5 subestima picos "
+        "convectivos: comparar con CHIRPS.\n\n## Período de retorno (mm)\n\n" + df_to_md(rt) + "\n\n## Tormentas mayores\n\n" + df_to_md(evs) + "\n")
+    r24 = {r["T"]: r["mm"] for r in j["retorno"] if r["fuente"] == "era5" and r["dur_h"] == 24}
+    p.summary_line("CLIMA (lluvia histórica)", [
+        f"ERA5 {j['fuentes'].get('era5')} · CHIRPS {j['fuentes'].get('chirps')}",
+        "24 h (ERA5): " + " · ".join(f"T{T}={mm:.0f} mm" for T, mm in r24.items()),
+        "Mayores: " + ", ".join(f"{e['fecha']} ({e['era5_72']} mm/72 h)" for e in j["eventos"]["historicos"][:5])])
+    return j
+
+
+def resolve_events(p: Project) -> list[dict]:
+    ev = p.cfg.get("sar", {}).get("eventos", "auto")
+    if ev != "auto":
+        return list(ev or [])
+    f = p.out / "clima.json"
+    j = json.loads(f.read_text()) if f.exists() else {}
+    if not j.get("disponible"):
+        print("  [aviso] sar.eventos = auto pero no hay out/clima.json con datos (correr la fase clima)")
+        return []
+    return [dict(id=e["id"], fecha=e["fecha"], descr=f"Tormenta de {e['era5_72']:.0f} mm en 72 h (ERA5)") for e in j["eventos"]["sentinel"]]
