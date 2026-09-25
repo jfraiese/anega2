@@ -1,6 +1,5 @@
-/* anega2 · visor multi-proyecto (Leaflet + Chart.js + proj4). Datos en ../projects/<nombre>/web/ generados por anega2 webdata. */
-const S = { map: null, manifest: null, stats: null, grid: null, figures: [], layers: {}, opacity: 0.8, scene: null, scenario: null, charts: {}, project: null, base: '', projects: [] };
-const PROJECTS_INDEX = '../projects/index.json';
+/* anega2 · vista «Detalle técnico» del visor: pestañas, capas, click con valores de la grilla. Usa el S global de app.js. */
+const Tecnico = (() => {
 const dataUrl = rel => S.base + rel;
 const GROUPS = ['Referencia', 'Terreno', 'Histórico', 'Simulación'];
 const GRID_LABELS = { dem: 'Cota (m snm)', hand: 'HAND · altura sobre drenaje (m)', slope_pct: 'Pendiente (%)', twi: 'TWI', sink_m: 'Depresión cerrada (m)',
@@ -54,19 +53,6 @@ function table(columns, rows, opts = {}) {
 }
 
 /* ---------------- mapa y capas ---------------- */
-function initMap(center) {
-  const base = {
-    'Esri satelital': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri, Maxar, Earthstar Geographics' }),
-    'Esri topo': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri, HERE, Garmin, © OpenStreetMap contributors' }),
-    'OpenStreetMap': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }),
-  };
-  S.map = L.map('map', { layers: [base['Esri satelital']], zoomControl: true }).setView(center, 15);
-  S.map.createPane('rasters'); S.map.getPane('rasters').style.zIndex = 350;
-  L.control.layers(base, null, { position: 'topright', collapsed: true }).addTo(S.map);
-  L.control.scale({ imperial: false }).addTo(S.map);
-  S.map.on('click', onMapClick);
-}
-
 async function buildLayers() {
   for (const def of S.manifest.layers) {
     let layer;
@@ -81,22 +67,22 @@ async function buildLayers() {
     }
     S.layers[def.id] = { def, layer, on: false };
   }
-  S.manifest.layers.filter(d => d.visible).forEach(d => show(d.id, false));
+  S.manifest.layers.filter(d => d.visible).forEach(d => show_(d.id, false));
   S.scenario = S.manifest.scenarios.find(s => s.id === 'P100_24h')?.id || S.manifest.scenarios[0]?.id || null;
   S.scene = null;
   refresh();
 }
 const exclusiveKey = def => def.type === 'image' ? (def.subgroup || def.group) : null;
-function show(id, doRefresh = true) {
+function show_(id, doRefresh = true) {
   const L_ = S.layers[id]; if (!L_ || L_.on) return;
   const k = exclusiveKey(L_.def);
-  if (k) Object.values(S.layers).forEach(o => { if (o.on && exclusiveKey(o.def) === k) hide(o.def.id, false); });
+  if (k) Object.values(S.layers).forEach(o => { if (o.on && exclusiveKey(o.def) === k) hide_(o.def.id, false); });
   L_.layer.addTo(S.map); L_.on = true;
   if (L_.def.type === 'geojson') L_.layer.bringToFront();
   if (doRefresh) refresh();
 }
-function hide(id, doRefresh = true) { const L_ = S.layers[id]; if (!L_ || !L_.on) return; S.map.removeLayer(L_.layer); L_.on = false; if (doRefresh) refresh(); }
-function toggle(id, on) { on ? show(id) : hide(id); }
+function hide_(id, doRefresh = true) { const L_ = S.layers[id]; if (!L_ || !L_.on) return; S.map.removeLayer(L_.layer); L_.on = false; if (doRefresh) refresh(); }
+function toggle(id, on) { on ? show_(id) : hide_(id); }
 function refresh() { renderLayerPanel(); renderLegend(); }
 
 function renderLayerPanel() {
@@ -162,12 +148,12 @@ function onMapClick(e) {
 
 /* ---------------- panel ---------------- */
 function renderVerdict() {
-  const k = S.stats.key || {}; const sc = S.manifest.scenarios; const P100 = sc.find(s => s.id === 'P100_24h'); const P100s = sc.find(s => s.id === 'P100_24h_sat');
+  const k = S.stats.key || {}, hi = S.stats.hand_incert; const sc = S.manifest.scenarios; const P100 = sc.find(s => s.id === 'P100_24h'); const P100s = sc.find(s => s.id === 'P100_24h_sat');
   const aoiLab = `${fmt(S.manifest.aoi_m, 0)} m`;
   const anyWater = (S.manifest.scenes || []).some(s => (s.pct_agua_lote ?? 0) > 0) || (S.stats.jrc.rows[0] && Number(S.stats.jrc.rows[0][2]) > 0);
   const cards = [
     ['Cota del lote', `${fmt(k.z_min_lote)} – ${fmt(k.z_max_lote)} m`],
-    ['HAND · altura sobre el drenaje', `${fmt(k.hand_min_lote)} – ${fmt(k.hand_max_lote)} m`],
+    ['HAND · altura sobre el drenaje', `${fmt(k.hand_min_lote)} – ${fmt(k.hand_max_lote)} m` + (hi ? ` · ± ${fmt(hi.sigma)} m<div class="k">prob. de &lt; 1 m: ${fmt(hi.p_lt1, 0)} %</div>` : '')],
     ['Pendiente media', `${fmt(k.slope_mean_lote_pct)} %`],
     ['Drenaje ≥ 0,5 km² más cercano', `${fmt(k.dist_euclid_red_05km2_m, 0)} m`],
     ['Cuenca aportante', `${fmt(k.cuenca_celda_mas_baja_ha)} – ${fmt(k.cuenca_todo_el_lote_ha)} ha`],
@@ -206,9 +192,9 @@ function renderHistorico() {
 }
 function selectScene(id) {
   const prev = S.manifest.scenes.find(s => s.id === S.scene);
-  if (prev) { hide(prev.db_layer, false); if (prev.w_layer) hide(prev.w_layer, false); }
+  if (prev) { hide_(prev.db_layer, false); if (prev.w_layer) hide_(prev.w_layer, false); }
   S.scene = id; const s = S.manifest.scenes.find(x => x.id === id);
-  if (s) { show(s.db_layer, false); if (s.w_layer) show(s.w_layer, false); }
+  if (s) { show_(s.db_layer, false); if (s.w_layer) show_(s.w_layer, false); }
   document.querySelectorAll('#scene-list label').forEach(l => l.classList.toggle('active', l.dataset.id === id));
   refresh();
 }
@@ -241,16 +227,16 @@ function drawHyeto() {
 function selectScenario(id) {
   const prev = S.manifest.scenarios.find(s => s.id === S.scenario);
   const wasH = prev && S.layers[prev.h_layer]?.on, wasD = prev && S.layers[prev.d_layer]?.on, wasV = prev && prev.v_layer && S.layers[prev.v_layer]?.on;
-  if (prev) { hide(prev.h_layer, false); hide(prev.d_layer, false); if (prev.v_layer) hide(prev.v_layer, false); }
+  if (prev) { hide_(prev.h_layer, false); hide_(prev.d_layer, false); if (prev.v_layer) hide_(prev.v_layer, false); }
   S.scenario = id; const s = S.manifest.scenarios.find(x => x.id === id);
-  if (s) { if (wasH || (!wasH && !wasD)) show(s.h_layer, false); if (wasD) show(s.d_layer, false); if (wasV && s.v_layer) show(s.v_layer, false); }
+  if (s) { if (wasH || (!wasH && !wasD)) show_(s.h_layer, false); if (wasD) show_(s.d_layer, false); if (wasV && s.v_layer) show_(s.v_layer, false); }
   document.querySelectorAll('#scenario-list label').forEach(l => l.classList.toggle('active', l.dataset.id === id));
   document.querySelectorAll('#rog-table tr').forEach(tr => tr.classList.toggle('hl', tr.firstChild && tr.firstChild.textContent === id));
   drawHyeto(); refresh();
 }
 function renderFigures() {
   const g = $('#gallery');
-  S.figures.forEach(f => { const fig = el('figure'); fig.innerHTML = `<a href="${dataUrl(f.file)}" target="_blank"><img loading="lazy" src="${dataUrl(f.file)}" alt="${esc(f.caption)}"></a><figcaption>${esc(f.caption)}</figcaption>`; g.appendChild(fig); });
+  (S.figures || []).forEach(f => { const fig = el('figure'); fig.innerHTML = `<a href="${dataUrl(f.file)}" target="_blank"><img loading="lazy" src="${dataUrl(f.file)}" alt="${esc(f.caption)}"></a><figcaption>${esc(f.caption)}</figcaption>`; g.appendChild(fig); });
 }
 function initTabs() {
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
@@ -260,25 +246,17 @@ function initTabs() {
   });
 }
 
-async function loadProjects() {
-  try { S.projects = await (await fetch(PROJECTS_INDEX)).json(); } catch (e) { S.projects = []; }
-  const want = new URLSearchParams(location.search).get('project');
-  S.project = (want && (S.projects.some(p => p.nombre === want) || !S.projects.length)) ? want : (S.projects[0]?.nombre || null);
-  const sel = $('#project'); sel.innerHTML = '';
-  const list = S.projects.length ? S.projects : (S.project ? [{ nombre: S.project, titulo: S.project }] : []);
-  list.forEach(p => { const o = el('option', { value: p.nombre }, esc(p.titulo || p.nombre)); if (p.nombre === S.project) o.selected = true; sel.appendChild(o); });
-  sel.onchange = () => { location.search = '?project=' + encodeURIComponent(sel.value); };
-  if (!S.project) throw new Error('no hay proyectos con datos del visor (corré: anega2 run <nombre> --fase web)');
-  S.base = `../projects/${encodeURIComponent(S.project)}/web/`;
-}
+let prendidas = [];
 async function init() {
-  await loadProjects();
-  [S.manifest, S.stats, S.grid, S.figures] = await Promise.all(['layers.json', 'stats.json', 'grid.json', 'figures.json'].map(u => fetch(dataUrl(u)).then(r => { if (!r.ok) throw new Error(`${u}: HTTP ${r.status}`); return r.json(); })));
-  initMap(S.manifest.center); initTabs();
+  initTabs();
   await buildLayers();
   renderVerdict(); renderTerrain(); renderHistorico(); renderSimulacion(); renderFigures();
   document.querySelectorAll('#scenario-list label').forEach(l => l.classList.toggle('active', l.dataset.id === S.scenario));
   $('#opacity').oninput = e => setOpacity(parseFloat(e.target.value));
   $('#btn-fit').onclick = () => { const o = S.layers.lote; if (o) S.map.fitBounds(o.layer.getBounds().pad(4)); };
 }
-init().catch(e => { console.error(e); $('#subtitle').textContent = 'Error cargando datos: ' + e.message; });
+// al salir se apagan sólo los rasters (las capas vectoriales, p. ej. el lote, quedan como referencia en la vista Resumen)
+function hide() { prendidas = Object.values(S.layers).filter(o => o.on && o.def.type === 'image').map(o => o.def.id); prendidas.forEach(id => hide_(id, false)); S.map.off('click', onMapClick); $('#legend').innerHTML = ''; }
+function show() { prendidas.forEach(id => show_(id, false)); prendidas = []; S.map.on('click', onMapClick); refresh(); }
+return { init, show, hide };
+})();
