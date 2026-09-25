@@ -4,22 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anega2"
-dynamic = ["version"]
-description = "Análisis de riesgo de anegamiento por lluvia para un polígono KML (Argentina)"
-requires-python = ">=3.11"
+version = "0.1.0"
+description = "Análisis de riesgo de anegamiento por lluvia para un polígono KML (Argentina): terreno, histórico satelital, Sentinel-1, rain-on-grid, informe y visor."
+readme = "README.md"
 license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = ["numpy", "scipy", "pandas", "pyyaml", "rasterio", "geopandas", "pyogrio", "shapely", "pyproj",
+                "whitebox", "matplotlib", "contextily", "requests", "xarray", "rioxarray", "landlab",
+                "pystac-client", "planetary-computer", "scikit-image", "pillow"]
 
 [project.scripts]
 anega2 = "anega2.cli:main"
 
 [tool.setuptools]
 packages = ["anega2"]
+include-package-data = true
 
 [tool.setuptools.package-data]
 anega2 = ["*.yml"]
-
-[tool.setuptools.dynamic]
-version = {attr = "anega2.__version__"}
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
