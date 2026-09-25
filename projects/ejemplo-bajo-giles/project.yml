@@ -46,29 +46,10 @@ sar:
     ventana_d: 10
     descr: Lluvias 7-8 jun 2026
 lluvia:
-  escenarios:
-  - id: P050_24h
-    P_mm: 50
-    dur_h: 24
-  - id: P100_24h
-    P_mm: 100
-    dur_h: 24
-  - id: P150_24h
-    P_mm: 150
-    dur_h: 24
-  - id: P200_24h
-    P_mm: 200
-    dur_h: 24
-  - id: P060_2h
-    P_mm: 60
-    dur_h: 2
-  saturado:
-  - P100_24h
-  - P150_24h
   Ks_mm_h: 10.0
   Ks_sat_mm_h: 2.0
   manning: 0.05
   psi_m: 0.17
   dtheta: 0.15
-  drenaje_h: 6
+  drenaje_h: 24
   presupuesto_min: 60

@@ -27,6 +27,7 @@ from rasterio.windows import from_bounds
 
 from .common import CRS_WGS84
 from .project import PROJECTS_DIR, Project
+from .rog import ficha_ids, scenario_specs
 
 EPSG3857 = "EPSG:3857"
 JRC_CMAP = colors.LinearSegmentedColormap.from_list("jrc", ["#ffffff", "#ff0000", "#8b00ff", "#0000ff"])
@@ -257,10 +258,12 @@ def run(p: Project) -> dict:
     rog_csv = out / "rog_stats.csv"
     rog = pd.read_csv(rog_csv) if rog_csv.exists() else pd.DataFrame()
     cfg_ll = p.cfg.get("lluvia", {})
-    by_id = {s["id"]: s for s in cfg_ll.get("escenarios", [])}
+    by_id = {s["id"]: s for s in scenario_specs(cfg_ll)}
     scen = []
     for q in sorted((proc / "rog").glob("*_hmax_dom.tif")) if (proc / "rog").exists() else []:
         name = q.name.replace("_hmax_dom.tif", "")
+        if name not in ficha_ids(cfg_ll):
+            continue
         meta_p = proc / "rog" / f"{name}_meta.json"
         meta = json.load(open(meta_p)) if meta_p.exists() else {}
         row = rog[rog.escenario == name].iloc[0].to_dict() if len(rog) and (rog.escenario == name).any() else {}

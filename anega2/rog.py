@@ -57,23 +57,38 @@ def alternating_block(P_mm: float, dur_h: float, dt_h: float, ratios: dict) -> n
     return out
 
 
+def scen_id(P: float, dur: float, sat: bool) -> str:
+    return f"P{int(round(P)):03d}_{dur:g}h" + ("_sat" if sat else "")
+
+
+def scenario_specs(cfg: dict) -> list[dict]:
+    """Escenarios a correr: la grilla P × duración × suelo, o la lista del formato viejo (escenarios + saturado)."""
+    if cfg.get("escenarios"):
+        print("  [aviso] lluvia.escenarios / saturado es el formato viejo: se usa tal cual (ver lluvia.grilla en defaults.yml)")
+        out = [dict(id=s["id"], P_mm=float(s["P_mm"]), dur_h=float(s["dur_h"]), suelo="normal") for s in cfg["escenarios"]]
+        by = {s["id"]: s for s in out}
+        out += [dict(by[i], id=f"{i}_sat", suelo="saturado") for i in cfg.get("saturado", []) or [] if i in by]
+        return out
+    g = cfg["grilla"]
+    return [dict(id=scen_id(P, d, s == "saturado"), P_mm=float(P), dur_h=float(d), suelo=s)
+            for P in g["P_mm"] for d in g["dur_h"] for s in g["suelo"]]
+
+
 def build_scenarios(cfg: dict) -> dict:
-    """Escenarios de cfg['lluvia'] -> {id: dict(P_mm, dur_h, dt_h, ratios, t_end_h, Ks_mm_h, label)}."""
-    dren = float(cfg.get("drenaje_h", 6))
-    out = {}
-    for sc in cfg["escenarios"]:
-        dur = float(sc["dur_h"]); P = float(sc["P_mm"])
+    """Escenarios -> {id: dict(P_mm, dur_h, dt_h, ratios, t_end_h, Ks_mm_h, suelo, label)}."""
+    dren = float(cfg.get("drenaje_h", 24)); out = {}
+    for s in scenario_specs(cfg):
+        dur, P, sat = s["dur_h"], s["P_mm"], s["suelo"] == "saturado"
         dt_h = 1.0 if dur >= 6 else 1 / 6
         shape_ = DD_SHAPE_LONG if dur > 3 else DD_SHAPE_SHORT
-        ratios = {f * dur: r for f, r in shape_.items()}
-        out[sc["id"]] = dict(P_mm=P, dur_h=dur, dt_h=dt_h, ratios=ratios, t_end_h=dur + dren, Ks_mm_h=float(cfg["Ks_mm_h"]),
-                             label=f"{P:g} mm en {dur:g} h")
-    for sid in cfg.get("saturado", []) or []:
-        if sid in out:
-            s = dict(out[sid]); s["Ks_mm_h"] = float(cfg["Ks_sat_mm_h"])
-            s["label"] = f"{out[sid]['label']} · suelo saturado (Ks {cfg['Ks_sat_mm_h']:g} mm/h)"
-            out[f"{sid}_sat"] = s
+        ks = float(cfg["Ks_sat_mm_h"] if sat else cfg["Ks_mm_h"])
+        out[s["id"]] = dict(P_mm=P, dur_h=dur, dt_h=dt_h, ratios={f * dur: r for f, r in shape_.items()}, t_end_h=dur + dren, Ks_mm_h=ks,
+                            suelo=s["suelo"], label=f"{P:g} mm en {dur:g} h" + (f" · suelo saturado (Ks {ks:g} mm/h)" if sat else ""))
     return out
+
+
+def ficha_ids(cfg: dict) -> list[str]:
+    return list(cfg.get("ficha") or [s["id"] for s in scenario_specs(cfg) if s["dur_h"] == 24])
 
 
 def load_dem_window(p: Project, primary: str, aoi: dict, name: str = "dem_breach.tif"):

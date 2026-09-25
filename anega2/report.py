@@ -101,7 +101,7 @@ def indicators(R: dict, p: Project) -> dict:
     if R["rog"] is not None and len(R["rog"]):
         r = R["rog"]
         def row_for(P, sat=False):
-            m = (r["P_mm"] == P) & (r["dur_h"] >= 6) & (r["escenario"].str.endswith("_sat") == sat)
+            m = (r["P_mm"] == P) & (r["dur_h"] == 24) & (r["escenario"].str.endswith("_sat") == sat)
             return r[m].iloc[0] if m.any() else None
         r100 = row_for(100); r150 = row_for(150)
         if r100 is not None:
