@@ -22,7 +22,7 @@
     for (const f of frames) {
       let m = 0, n = 0;
       for (const i of loteIdx) { const v = f[i]; if (v > m) m = v; if (v > u) n++; }
-      hmax.push(m); pct.push(Math.round((1000 * n) / loteIdx.length) / 10);
+      hmax.push(m); pct.push(loteIdx.length === 0 ? 0 : Math.round((1000 * n) / loteIdx.length) / 10);
     }
     const horasConAgua = hmax.filter(v => v > u).length;
     return { hmax, pct, horasConAgua, horaPico: hmax.indexOf(Math.max(...hmax)) };
@@ -65,7 +65,7 @@
     if (o.hmaxCm < 5) cuerpo = 'el lote no junta agua (menos de 5 cm).';
     else {
       const cert = o.soloUnModelo ? ' (incierto: sólo 1 de 3 modelos de terreno)' : o.nivel ? ` (${NIVEL_TXT[o.nivel]}${o.certezaSoloVecindad ? ', certeza sólo por vecindad' : ''})` : '';
-      cuerpo = `hasta ${fmt(o.hmaxCm)} cm en ${fraccion(o.pct)}${cert}, con agua ~${fmt(o.horasConAgua)} h.`;
+      cuerpo = `hasta ${fmt(o.hmaxCm)} cm en ${fraccion(o.pct)}${cert}, queda con agua ~${fmt(o.horasConAgua)} h.`;
     }
     const fr = frecuencia(o);
     return cab + cuerpo + (fr ? ' ' + fr : '');

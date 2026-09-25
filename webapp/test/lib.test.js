@@ -20,6 +20,13 @@ test('loteSerie', () => {
   assert.deepStrictEqual(s.pct, [0, 50, 100]);
   assert.strictEqual(s.horasConAgua, 2); assert.strictEqual(s.horaPico, 2);
 });
+test('loteSerie lote vacío', () => {
+  const f = [new Uint8Array([0, 0, 0]), new Uint8Array([8, 2, 99]), new Uint8Array([30, 6, 0])];
+  const s = Lib.loteSerie(f, [], 5);
+  assert.deepStrictEqual(s.hmax, [0, 0, 0]);
+  assert.deepStrictEqual(s.pct, [0, 0, 0]);
+  assert.strictEqual(s.horasConAgua, 0);
+});
 test('nivelCerteza', () => {
   assert.deepStrictEqual([80, 70, 50, 10, 4].map(Lib.nivelCerteza), ['probable', 'probable', 'posible', 'poco', null]);
 });
@@ -30,7 +37,7 @@ test('retornoAnios', () => {
 });
 test('frase con agua', () => {
   const s = Lib.frase({ P: 120, dur: 24, hmaxCm: 15, pct: 33, horasConAgua: 6, nivel: 'probable', Tera5: 10.4, Tchirps: 12 });
-  assert.strictEqual(s, 'Con 120 mm en un día de lluvia: hasta 15 cm en un tercio del lote (probable), con agua ~6 h. Una lluvia así pasa cada ~10 años.');
+  assert.strictEqual(s, 'Con 120 mm en un día de lluvia: hasta 15 cm en un tercio del lote (probable), queda con agua ~6 h. Una lluvia así pasa cada ~10 años.');
 });
 test('frase sin agua', () => {
   const s = Lib.frase({ P: 25, dur: 3, hmaxCm: 3, pct: 0, horasConAgua: 0, nivel: null, Tera5: 1.2 });
