@@ -1,7 +1,8 @@
 """Informe automático (out/README.md): números clave, veredicto por reglas (rules.yml) y chequeos de campo.
 
 Lee las tablas producidas por terrain/water/sar/rog. Las fases ausentes se marcan como pendientes.
-Mantiene los encabezados que usa webdata.py: '## Veredicto' … '---' y '## 5. Qué chequear en campo'.
+`run()` también escribe out/veredicto.json (indicadores, veredicto, verdict_md, field_md, etiqueta,
+frase_nivel), que webdata.py copia a web/veredicto.json y usa para stats.verdict_md/field_md.
 """
 from __future__ import annotations
 
@@ -308,6 +309,16 @@ def _campo(ev: dict, R: dict, p: Project) -> str:
 """
 
 
+FRASES_NIVEL = {"BAJO": "No se esperan problemas de agua con lluvias normales ni grandes.",
+                "MEDIO-BAJO": "Con lluvias muy grandes puede juntar algo de agua.",
+                "MEDIO": "Con lluvias grandes, parte del lote se anega por unas horas.",
+                "ALTO": "Se anega con frecuencia o está en la zona que ocupa el agua del arroyo."}
+
+
+def etiqueta(nivel: str) -> tuple[str, str]:
+    return f"Riesgo {nivel.lower()}", FRASES_NIVEL.get(nivel, "")
+
+
 def _reglas_md() -> str:
     s = "| Componente | Indicador | Umbrales |\n|---|---|---|\n"
     for comp in ("lluvia_local", "desborde"):
@@ -324,6 +335,8 @@ def build(p: Project) -> tuple[str, dict]:
     rp = R["rog_params"]; prim = (R["primary"] or {}).get("primary", "—")
     rog_tab, rog_eff = _tabla_rog(R, p)
     ev_ids = eventos_analizados(R) or ["ninguno"]
+    veredicto_md = _veredicto(ev, ind, R, p)
+    campo_md = _campo(ev, R, p)
     md = f"""# Riesgo de anegamiento — {p.titulo} · interpretación
 
 **Polígono**: {f(p.load_aoi()['lote'].area, 0)} m², centroide {lat:.6f}, {lon:.6f} (WGS84), CRS de trabajo {p.crs} ({p.crs_descr}).
@@ -334,7 +347,7 @@ Buffers: área de interés {aoi}, análisis hidrológico {p.hidro_m/1000:.0f} km
 
 ## Veredicto
 
-{_veredicto(ev, ind, R, p)}
+{veredicto_md}
 ---
 
 ## 1. Dónde está el lote en el relieve (terreno)
@@ -385,7 +398,7 @@ Advertencias: no incluye la crecida que viene de fuera del dominio; las celdas s
 
 ## 5. Qué chequear en campo
 
-{_campo(ev, R, p)}
+{campo_md}
 ## 6. Reglas del veredicto
 
 Niveles: {' < '.join(NIVELES)}. Cada componente toma el nivel más alto que dispare alguna regla; el global es el máximo de los dos.
@@ -393,7 +406,9 @@ Niveles: {' < '.join(NIVELES)}. Cada componente toma el nivel más alto que disp
 {_reglas_md()}
 Eventos Sentinel-1 configurados: {', '.join(ev_ids)}. Fuentes y licencias: `SOURCES.md` del repositorio.
 """
-    return md, dict(indicadores=ind, veredicto=ev)
+    et, frase = etiqueta(ev["global"])
+    return md, dict(indicadores=ind, veredicto=ev, verdict_md=veredicto_md.strip(), field_md=campo_md.strip(),
+                     etiqueta=et, frase_nivel=frase)
 
 
 def run(p: Project) -> dict:

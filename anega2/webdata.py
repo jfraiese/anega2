@@ -341,9 +341,9 @@ def run(p: Project) -> dict:
     # --- stats.json ---
     ts_p = out / "terrain_stats.csv"
     ts = pd.read_csv(ts_p) if ts_p.exists() else pd.DataFrame(columns=["variable"])
-    readme = (out / "README.md").read_text() if (out / "README.md").exists() else ""
-    m = re.search(r"## Veredicto\n(.*?)\n---", readme, re.S)
-    m2 = re.search(r"## 5\. Qué chequear en campo\n(.*)$", readme, re.S)
+    vj = json.load(open(out / "veredicto.json")) if (out / "veredicto.json").exists() else {}
+    if vj:
+        shutil.copy(out / "veredicto.json", web / "veredicto.json")
     prim_cols = [cc for cc in ts.columns if "(primario)" in cc]
     kv = dict(zip(ts["variable"], ts[prim_cols[0]])) if prim_cols else {}
     stats = dict(
@@ -353,7 +353,7 @@ def run(p: Project) -> dict:
         jrc=_csv_rows(out / "jrc_stats.csv"), sar=_csv_rows(sar_csv), rog=_csv_rows(rog_csv),
         rog_params=json.load(open(out / "rog_params.json")) if (out / "rog_params.json").exists() else {},
         depresiones=_csv_rows(_first(out / "terrain_depresiones_aoi.csv", out / "terrain_depresiones_500m.csv")),
-        verdict_md=m.group(1).strip() if m else "", field_md=m2.group(1).strip() if m2 else "",
+        verdict_md=vj.get("verdict_md", ""), field_md=vj.get("field_md", ""),
         jrc_extra=_jrc_extra(out / "jrc_stats.md"),
     )
     json.dump(stats, open(web / "stats.json", "w"), ensure_ascii=False,

@@ -10,3 +10,8 @@ def test_eventos_analizados_desde_sar_stats():
 
 def test_eventos_analizados_sin_sar():
     assert report.eventos_analizados({"sar": None}) == []
+
+
+def test_etiqueta():
+    assert report.etiqueta("MEDIO-BAJO") == ("Riesgo medio-bajo", "Con lluvias muy grandes puede juntar algo de agua.")
+    assert report.etiqueta("ALTO")[0] == "Riesgo alto"
