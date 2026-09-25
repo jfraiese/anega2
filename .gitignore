@@ -22,3 +22,5 @@ projects/ejemplo-*/out/alt_*/
 projects/ejemplo-*/out/*.tif
 projects/ejemplo-*/out/*.png
 projects/ejemplo-*/out/ficha/*.png
+# brainstorming visual companion
+.superpowers/
