@@ -11,9 +11,13 @@ Salidas: data/raw/clima/era5_<lat>_<lon>.csv (caché horaria), cache/chirps/<lat
 from __future__ import annotations
 
 import math
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import requests
 
 TS = [2, 5, 10, 25, 50, 100]
 EULER = 0.5772156649
@@ -73,3 +77,78 @@ def desagrupar(s72: pd.Series, n: int, separacion_d: int, desde: str | None = No
             if len(picos) == n:
                 break
     return picos
+
+
+# ------------------------------------------------------------------ fuentes
+OPENMETEO = "https://archive-api.open-meteo.com/v1/archive"
+CHIRPS_URL = "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/cogs/p05/{y}/chirps-v2.0.{y}.{m:02d}.{d:02d}.cog"
+TZ = "America/Argentina/Buenos_Aires"
+ERA5_DESDE = date(1940, 1, 1)
+CHIRPS_DESDE = date(1981, 1, 1)
+
+
+def parse_openmeteo(j: dict) -> pd.Series:
+    h = j["hourly"]
+    return pd.Series([np.nan if v is None else float(v) for v in h["precipitation"]],
+                     index=pd.to_datetime(h["time"]), name="mm", dtype=float).rename_axis("t")
+
+
+def _read_cache(path: Path) -> pd.Series:
+    if not path.exists():
+        return pd.Series(dtype=float, name="mm")
+    return pd.read_csv(path, index_col=0, parse_dates=True).iloc[:, 0].rename("mm")
+
+
+def era5_horaria(lat, lon, cache_csv: Path, hasta: date, get=requests.get) -> pd.Series:
+    s = _read_cache(cache_csv)
+    ini = s.index.max().date() if len(s) else ERA5_DESDE
+    partes = [s[s.index < pd.Timestamp(ini)]] if len(s) else []
+    d0 = ini
+    try:
+        while d0 <= hasta:
+            d1 = min(hasta, date(d0.year + 10, 1, 1) - timedelta(days=1))
+            r = get(OPENMETEO, params=dict(latitude=lat, longitude=lon, start_date=d0.isoformat(), end_date=d1.isoformat(),
+                                           hourly="precipitation", models="era5", timezone=TZ), timeout=120)
+            r.raise_for_status(); partes.append(parse_openmeteo(r.json()))
+            print(f"  ERA5 {d0} → {d1}")
+            d0 = d1 + timedelta(days=1)
+    except Exception as e:  # noqa: BLE001
+        print(f"  [aviso] ERA5 (Open-Meteo) no respondió: {e}; se usa lo que haya en caché")
+    if not partes:
+        return s
+    out = pd.concat(partes); out = out[~out.index.duplicated(keep="last")].sort_index()
+    cache_csv.parent.mkdir(parents=True, exist_ok=True); out.rename_axis("t").to_csv(cache_csv)
+    return out
+
+
+def chirps_pixel(lat: float, lon: float) -> tuple[float, float]:
+    f = lambda v: math.floor(v / 0.05) * 0.05 + 0.025  # noqa: E731
+    return round(f(lat), 3), round(f(lon), 3)
+
+
+def _leer_chirps_dia(fecha: date, lon: float, lat: float) -> float | None:
+    import rasterio
+    url = CHIRPS_URL.format(y=fecha.year, m=fecha.month, d=fecha.day)
+    try:
+        with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_TIMEOUT="30"):
+            with rasterio.open(f"/vsicurl/{url}") as s:
+                v = float(next(s.sample([(lon, lat)]))[0])
+        return None if v < -9000 else v
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def chirps_diaria(lat, lon, cache_csv: Path, hasta: date, hilos: int, leer=_leer_chirps_dia, desde: date = CHIRPS_DESDE) -> pd.Series:
+    if lat < -50 or lat > 50:
+        print("  CHIRPS no cubre latitudes fuera de ±50°: se usa sólo ERA5")
+        return pd.Series(dtype=float, name="mm")
+    s = _read_cache(cache_csv).dropna()
+    faltan = [d.date() for d in pd.date_range(desde, hasta, freq="D") if pd.Timestamp(d) not in s.index]
+    if faltan:
+        print(f"  CHIRPS: {len(faltan)} días por leer ({hilos} hilos)…")
+        with ThreadPoolExecutor(hilos) as ex:
+            vals = list(ex.map(lambda d: leer(d, lon, lat), faltan))
+        nuevos = pd.Series({pd.Timestamp(d): v for d, v in zip(faltan, vals) if v is not None}, dtype=float, name="mm")
+        s = pd.concat([s, nuevos]).sort_index()
+        cache_csv.parent.mkdir(parents=True, exist_ok=True); s.rename_axis("t").to_csv(cache_csv)
+    return s.reindex(pd.date_range(desde, hasta, freq="D")).rename("mm")
