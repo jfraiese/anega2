@@ -35,6 +35,8 @@ from .project import Project
 DD_SHAPE_LONG = {1 / 24: 0.40, 2 / 24: 0.52, 3 / 24: 0.60, 4 / 24: 0.66, 6 / 24: 0.74, 8 / 24: 0.80, 12 / 24: 0.88, 18 / 24: 0.95, 1.0: 1.0}
 DD_SHAPE_SHORT = {10 / 120: 0.25, 20 / 120: 0.40, 30 / 120: 0.55, 60 / 120: 0.75, 90 / 120: 0.90, 1.0: 1.0}
 H_FILM = 1e-5      # película mínima que requiere el esquema de de Almeida (h_init de OverlandFlow)
+H_PISO = H_FILM * 1e-3  # el piso al que Landlab lleva las láminas < h_init con steep_slopes; infiltrar hasta acá
+                        # evita que borre la lluvia débil y no divide por cero
 ALPHA = 0.7        # coeficiente de estabilidad de OverlandFlow
 H_THRESH = 0.05    # umbral de "anegado" (m) para la duración y las manchas
 
@@ -169,7 +171,7 @@ def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dic
         dt = max(dt, 0.1)
         h += rain * dt; rain_tot += rain * dt
         fp = Ks * (1 + psi_dt / F[core]) * dt
-        inf = np.minimum(fp, np.maximum(h[core] - H_FILM, 0.0))
+        inf = np.minimum(fp, np.maximum(h[core] - H_PISO, 0.0))
         h[core] -= inf; F[core] += inf; infil_tot[core] += inf
         of.overland_flow(dt=dt)
         out_tot += float(grid.calc_flux_div_at_node(of._q)[core].sum()) * cell_a * dt  # caudal core -> borde (divergencia de flujo)

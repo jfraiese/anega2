@@ -42,6 +42,26 @@ def test_run_scenario_chico_guarda_cuadros(tmp_project):
     assert np.array_equal(r["hmax"], r2["hmax"])
 
 
+def test_run_scenario_lluvia_debil_larga_no_borra_infiltracion(tmp_project):
+    """Lluvia liviana y larga: el incremento de lámina por paso de integración (<=60 s) queda por debajo
+    de H_FILM (1e-5 m). Si Green-Ampt sólo infiltra hasta H_FILM, esa lluvia nunca llega a infiltrarse y
+    el piso de steep_slopes de OverlandFlow (h_init*1e-3) la borra al final de cada paso: el balance no cierra."""
+    z = np.fromfunction(lambda r, c: 10 + 0.01 * c + 0.3 * ((r - 7) ** 2 + (c - 7) ** 2) ** 0.5 / 10, (15, 15)).astype("float32")
+    tr = from_origin(5_500_000, 6_200_000, 30, 30); lot = np.zeros_like(z, bool); lot[6:9, 6:9] = True
+    sc = rog.build_scenarios(dict(grilla=dict(P_mm=[10], dur_h=[24], suelo=["normal"]), Ks_mm_h=10, Ks_sat_mm_h=2, drenaje_h=2))["P010_24h"]
+    params = dict(manning=0.05, psi_m=0.17, dtheta=0.15)
+    rog.run_scenario(tmp_project, "P010_24h", sc, z, tr, params, 600, lot)
+    meta = json.loads((tmp_project.data_proc / "rog" / "P010_24h_meta.json").read_text())
+    b = meta["balance"]
+    assert abs(b["error_pct"]) < 1
+    # De la lluvia que cae sobre nodos "core" (no de borde) debe infiltrarse ≥95 %: Ks (10 mm/h) >> intensidad
+    # media (10 mm / 24 h). La lluvia que cae sobre el anillo de borde (13*13=169 de los 225 nodos son core;
+    # el resto es el perímetro de 1 celda) nunca infiltra por diseño (sale por "salida_bordes_m3"), así que
+    # comparamos contra la lluvia caída sólo sobre el core, no contra el total del dominio.
+    core_frac = (15 - 2) * (15 - 2) / (15 * 15)
+    assert b["infiltrado_m3"] >= 0.95 * b["lluvia_m3"] * core_frac
+
+
 def test_run_scenario_presupuesto_agotado_repite_ultimo_cuadro(tmp_project):
     z = np.fromfunction(lambda r, c: 10 + 0.01 * c + 0.3 * ((r - 7) ** 2 + (c - 7) ** 2) ** 0.5 / 10, (15, 15)).astype("float32")
     z[7, 7] -= 0.5
