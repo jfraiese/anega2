@@ -12,7 +12,7 @@ Buffers: área de interés 500 m, análisis hidrológico 10 km.
 
 - **Anegamiento por lluvia local (agua que cae sobre el lote o le llega de arriba): MEDIO-BAJO.** El lote no tiene depresión cerrada, su cuenca aportante es de 0,99 ha (celda más baja) a 9,45 ha (todo el lote) y escurre hacia NE (34°) con pendiente media 0,51 %. En la simulación, con 100 mm en 24 h la lámina máxima en el lote es de 9 cm (8 % del lote con más de 5 cm). Reglas: lámina máxima simulada en el lote con 100 mm en 24 h = 9,1 → MEDIO-BAJO.
 - **Desborde del drenaje (el agua sube desde el arroyo o el bajo): MEDIO.** El drenaje ≥ 0,5 km² más cercano está a **134 m** y el punto más bajo del lote queda **0,57 m por encima del cauce por camino de flujo (HAND 0,57–1,4 m)**; el 48 % del entorno de 500 m está a menos de 1 m sobre el drenaje y el 72 % a menos de 2 m. Landsat 1984-2021 nunca registró agua sobre el lote. Sentinel-1 no detectó agua abierta sobre el lote en ninguna escena (máximo en el entorno: 0 %). Con 150 mm en 24 h simulados, el 34 % del entorno supera los 20 cm. Reglas: HAND mínimo del lote (altura sobre el drenaje más cercano por camino de flujo) = 0,57 → MEDIO; % del entorno con más de 20 cm simulados con 150 mm en 24 h = 34,22 → MEDIO.
-- **Frecuencia**: 100 mm en 24 h ocurre en promedio cada 12 años según ERA5 (cada 10 según CHIRPS).
+- **Frecuencia** (Gumbel sobre máximos anuales; tope de 100 años): 100 mm en 24 h ≈ cada 12 años (ERA5; CHIRPS: 10).
 - **Limitación principal**: la topografía disponible es de 30 m de píxel, con ruido vertical de décimas de metro y sin microrrelieve (zanjas, terraplenes, alcantarillas). A escala de lote la diferencia entre anegarse o no está en decenas de centímetros que el DEM no resuelve. **El veredicto es un diagnóstico regional que hay que confirmar en campo.**
 
 ---
@@ -73,7 +73,7 @@ Figuras `30_sar_*.png`.
 Modelo 2D Landlab `OverlandFlow` sobre el DEM primario corregido (fabdem, 30 m), dominio de ±5 km con bordes
 abiertos, Manning n = 0.05, infiltración Green-Ampt con Ks = 10.0 mm/h
 (ψ = 0.17 m, Δθ = 0.15) y sensibilidad con Ks = 2.0 mm/h (suelo saturado / napa alta).
-Hietograma de bloque alterno con relaciones P(d)/P(24 h) genéricas: **sin período de retorno** (no hay IDF local).
+Hietograma de bloque alterno con relaciones P(d)/P(24 h) genéricas (no hay IDF local); la frecuencia de cada lluvia se estima aparte (fase clima, Gumbel sobre ERA5/CHIRPS).
 
 | Escenario | Infiltra (mm) | Lote: h máx (cm) | Lote: h media (cm) | Lote: % > 5 cm | Lote: % > 20 cm | Lote: horas > 5 cm | 500 m: % > 5 cm | 500 m: % > 20 cm | 500 m: h máx (cm) |
 |---|---|---|---|---|---|---|---|---|---|
@@ -204,7 +204,7 @@ Hietograma de bloque alterno con relaciones P(d)/P(24 h) genéricas: **sin perí
 | 250 mm / 72 h · suelo saturado (Ks 2) | lámina de 208 cm en el 100 % del lote durante 15,2 h; 100 % con más de 20 cm | 70 % con > 5 cm, 60 % con > 20 cm |
 
 Advertencias: no incluye la crecida que viene de fuera del dominio; las celdas son de 30 × 30 m; celdas aisladas con láminas
-> 1 m suelen ser pozos residuales del DEM; el balance de masa cierra por residuo. Figuras `40_rog_*.png`; tabla `rog_stats.md`.
+> 1 m suelen ser pozos residuales del DEM; la salida por los bordes se mide por flujo en el borde (error de balance de cada corrida en `data/proc/rog/<id>_meta.json`). Figuras `40_rog_*.png`; tabla `rog_stats.md`.
 
 ## 4. Limitaciones
 
@@ -247,4 +247,4 @@ Niveles: BAJO < MEDIO-BAJO < MEDIO < ALTO. Cada componente toma el nivel más al
 | desborde | máximo % del entorno (buffer AOI) detectado como agua en alguna escena Sentinel-1 | ≥ 10 → MEDIO |
 | desborde | % del entorno con más de 20 cm simulados con 150 mm en 24 h | ≥ 10 → MEDIO |
 
-Eventos Sentinel-1 configurados: 2015-08, 2016-04, 2024-03, 2025-05, 2026-06. Fuentes y licencias: `SOURCES.md` del repositorio.
+Eventos Sentinel-1 analizados: 2015-08, 2016-04, 2024-03, 2025-05, 2026-06. Fuentes y licencias: `SOURCES.md` del repositorio.

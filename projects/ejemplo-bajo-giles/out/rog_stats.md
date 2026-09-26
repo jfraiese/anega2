@@ -1,6 +1,6 @@
 # Rain-on-grid · lámina máxima por escenario
 
-Landlab OverlandFlow (de Almeida et al. 2012) sobre fabdem (30 m, dominio ±5 km), Manning n = 0.05, Green-Ampt Ks = 10 mm/h (saturado: 2), ψ = 0.17 m, Δθ = 0.15. Hietograma de bloque alterno. Sin período de retorno (no hay IDF local). Columnas `*_aoi_*` = buffer de 500 m. `escurrido_pct` = 100 − infiltrado (sale por los bordes abiertos o queda almacenado; la salida por los bordes se estima como residuo).
+Landlab OverlandFlow (de Almeida et al. 2012) sobre fabdem (30 m, dominio ±5 km), Manning n = 0.05, Green-Ampt Ks = 10 mm/h (saturado: 2), ψ = 0.17 m, Δθ = 0.15. Hietograma de bloque alterno (la frecuencia de cada lluvia está en la fase clima). Columnas `*_aoi_*` = buffer de 500 m. `escurrido_pct` = 100 − infiltrado (sale por los bordes abiertos o queda almacenado; la salida por los bordes se mide por flujo en el borde, ver `balance` en data/proc/rog/<id>_meta.json).
 
 | escenario | P_mm | dur_h | Ks_mm_h | hmax_lote_m | hmedia_lote_m | pct_lote_gt5cm | pct_lote_gt20cm | dur_max_lote_h | hmax_aoi_m | hmedia_aoi_m | pct_aoi_gt5cm | pct_aoi_gt20cm | infil_media_mm | escurrido_pct | almacenado_final_pct | t_sim_h | pasos | wall_min |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
