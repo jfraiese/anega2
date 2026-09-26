@@ -77,3 +77,52 @@ def test_run_scenario_presupuesto_agotado_repite_ultimo_cuadro(tmp_project):
     assert meta["cortado"] is True
     assert meta["horas_simuladas"] < sc["t_end_h"]
     assert r["hmax"].shape == z.shape
+
+
+def _chico():
+    z = np.fromfunction(lambda r, c: 10 + 0.01 * c + 0.3 * ((r - 7) ** 2 + (c - 7) ** 2) ** 0.5 / 10, (15, 15)).astype("float32")
+    z[7, 7] -= 0.5
+    tr = from_origin(5_500_000, 6_200_000, 30, 30); lot = np.zeros_like(z, bool); lot[6:9, 6:9] = True
+    return z, tr, lot
+
+
+def _sc(ks):
+    return rog.build_scenarios(dict(grilla=dict(P_mm=[100], dur_h=[3], suelo=["normal"]), Ks_mm_h=ks, Ks_sat_mm_h=2, drenaje_h=1))["P100_3h"]
+
+
+def test_cache_con_huella(tmp_project):
+    z, tr, lot = _chico(); params = dict(manning=0.05, psi_m=0.17, dtheta=0.15, dem="fabdem")
+    meta_p = tmp_project.data_proc / "rog" / "P100_3h_meta.json"
+    r = rog.run_scenario(tmp_project, "P100_3h", _sc(10), z, tr, params, 600, lot)
+    h1 = json.loads(meta_p.read_text())["huella"]; m1 = meta_p.stat().st_mtime_ns
+    assert isinstance(h1, str) and len(h1) == 12 and not r.get("sin_huella")
+    r2 = rog.run_scenario(tmp_project, "P100_3h", _sc(10), z, tr, params, 600, lot)       # mismos parámetros: caché
+    assert meta_p.stat().st_mtime_ns == m1 and not r2.get("sin_huella")
+    r3 = rog.run_scenario(tmp_project, "P100_3h", _sc(2), z, tr, params, 600, lot)        # Ks distinto: recalcula
+    meta = json.loads(meta_p.read_text())
+    assert meta["huella"] != h1 and meta["Ks_mm_h"] == pytest.approx(2) and r3["Ks_mm_h"] == pytest.approx(2)
+    h3 = meta["huella"]
+    rog.run_scenario(tmp_project, "P100_3h", _sc(2), z, tr, dict(params, dem="glo30"), 600, lot)   # otro DEM: recalcula
+    assert json.loads(meta_p.read_text())["huella"] != h3
+
+
+def test_cache_legado_sin_huella_se_reusa(tmp_project):
+    z, tr, lot = _chico(); params = dict(manning=0.05, psi_m=0.17, dtheta=0.15, dem="fabdem")
+    meta_p = tmp_project.data_proc / "rog" / "P100_3h_meta.json"
+    rog.run_scenario(tmp_project, "P100_3h", _sc(10), z, tr, params, 600, lot)
+    meta = json.loads(meta_p.read_text()); meta.pop("huella"); meta_p.write_text(json.dumps(meta))
+    m1 = meta_p.stat().st_mtime_ns
+    r = rog.run_scenario(tmp_project, "P100_3h", _sc(2), z, tr, params, 600, lot)         # aunque cambie Ks: legado, se reusa
+    assert r["sin_huella"] is True and r["Ks_mm_h"] == pytest.approx(10) and meta_p.stat().st_mtime_ns == m1
+
+
+def test_podar_salidas_de_escenarios_no_configurados(tmp_path):
+    for n in ["40_rog_P060_2h.png", "40_rog_P060_2h_dom.png", "40_rog_P100_24h.png", "40_rog_P100_24h_dom.png", "40_rog_P100_24h_sat.png",
+              "rog_P060_2h_agua5cm.geojson", "rog_P060_2h_agua5cm.kml", "rog_P100_24h_agua5cm.geojson", "rog_P060_2h_hmax_aoi.tif",
+              "rog_P060_2h_dur5cm_aoi.tif", "rog_P025_3h_hmax_aoi.tif", "rog_stats.csv", "10_terrain_dem.png"]:
+        (tmp_path / n).write_text("x")
+    borr = rog.podar_salidas(tmp_path, ficha={"P100_24h"}, configurados={"P100_24h", "P025_3h"})
+    quedan = sorted(q.name for q in tmp_path.iterdir())
+    assert quedan == ["10_terrain_dem.png", "40_rog_P100_24h.png", "40_rog_P100_24h_dom.png", "rog_P025_3h_hmax_aoi.tif",
+                      "rog_P100_24h_agua5cm.geojson", "rog_stats.csv"]
+    assert len(borr) == 7

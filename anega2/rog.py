@@ -2,9 +2,12 @@
 
 Dominio: cuadrado de ±buffers.lluvia_m alrededor del lote, sobre el DEM primario corregido
 (data/proc/terrain/<primario>/dem_breach.tif), a la resolución nativa del DEM. Bordes abiertos.
-Infiltración: Green-Ampt por celda (Ks, ψ, Δθ de cfg['lluvia']). Escenarios de cfg['lluvia'].escenarios,
-más copias "_sat" (suelo saturado, Ks_sat_mm_h) para los ids de cfg['lluvia'].saturado.
-Hietograma de bloque alterno con relaciones profundidad-duración genéricas (sin IDF local: sin período de retorno).
+Infiltración: Green-Ampt por celda (Ks, ψ, Δθ de cfg['lluvia']). Escenarios: la grilla cfg['lluvia'].grilla
+(P × duración × suelo normal/saturado, Ks_sat_mm_h para el saturado) o, en el formato viejo, la lista
+cfg['lluvia'].escenarios más copias "_sat" (ver scenario_specs).
+Hietograma de bloque alterno con relaciones profundidad-duración genéricas (sin IDF local); la frecuencia de cada
+lluvia se estima aparte en la fase clima (Gumbel sobre ERA5/CHIRPS). Balance de agua: la salida por los bordes
+abiertos se mide por flujo en el borde (no por residuo). Caché por escenario con huella de parámetros (ver huella()).
 
 Salidas: data/proc/rog/<esc>_hmax_dom.tif, <esc>_dur5cm_dom.tif, <esc>_meta.json, <esc>_frames.npz;
          data/proc/rog/ens/<id>__<dem>_hmax_dom.tif, <id>__<dem>_dur5cm_dom.tif, <id>__<dem>_meta.json, <id>__<dem>_frames.npz
@@ -14,6 +17,7 @@ Salidas: data/proc/rog/<esc>_hmax_dom.tif, <esc>_dur5cm_dom.tif, <esc>_meta.json
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
@@ -39,6 +43,30 @@ H_PISO = H_FILM * 1e-3  # el piso al que Landlab lleva las láminas < h_init con
                         # evita que borre la lluvia débil y no divide por cero
 ALPHA = 0.7        # coeficiente de estabilidad de OverlandFlow
 H_THRESH = 0.05    # umbral de "anegado" (m) para la duración y las manchas
+VERSION_SIM = 2    # subir cuando cambie la física/salidas de run_scenario: invalida la caché de data/proc/rog
+
+
+def huella(sc: dict, params: dict, lot: np.ndarray) -> str:
+    """Huella corta de lo que determina una corrida (escenario, parámetros —incluido params['dem']—, lote, versión)."""
+    s = json.dumps(dict(sc={k: v for k, v in sc.items() if k != "label"}, params=params, dem=params.get("dem"), lote=[int(lot.sum()), list(lot.shape)], v=VERSION_SIM),
+                   sort_keys=True, default=str)
+    return hashlib.sha1(s.encode()).hexdigest()[:12]
+
+
+def podar_salidas(out: Path, ficha: set, configurados: set) -> list[str]:
+    """Borra de out/ las salidas de escenarios que ya no se configuran: figuras 40_rog_<id>*.png y manchas
+    rog_<id>_agua5cm.* fuera de la ficha; recortes rog_<id>_{hmax,dur5cm}_aoi.tif fuera de la configuración."""
+    borrar = []
+    for q in out.glob("40_rog_*.png"):
+        i = q.stem[len("40_rog_"):]; i = i[:-len("_dom")] if i.endswith("_dom") else i
+        if i not in ficha:
+            borrar.append(q)
+    borrar += [q for q in out.glob("rog_*_agua5cm.*") if q.name[len("rog_"):q.name.index("_agua5cm")] not in ficha]
+    for suf in ("_hmax_aoi.tif", "_dur5cm_aoi.tif"):
+        borrar += [q for q in out.glob(f"rog_*{suf}") if q.name[len("rog_"):-len(suf)] not in configurados]
+    for q in borrar:
+        q.unlink(missing_ok=True)
+    return sorted(q.name for q in borrar)
 
 
 def encode_frame(h_m: np.ndarray) -> np.ndarray:
@@ -134,12 +162,16 @@ def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dic
     proc = p.data_proc / "rog" / subdir; proc.mkdir(parents=True, exist_ok=True)
     hmax_path = proc / f"{name}_hmax_dom.tif"; dur_path = proc / f"{name}_dur5cm_dom.tif"; meta_path = proc / f"{name}_meta.json"
     frames_path = proc / f"{name}_frames.npz"
+    hu = huella(sc, params, lot)
     if hmax_path.exists() and dur_path.exists() and meta_path.exists() and frames_path.exists():
-        with rasterio.open(hmax_path) as s:
-            hmax = s.read(1)
-        with rasterio.open(dur_path) as s:
-            dur = s.read(1)
-        return dict(hmax=hmax, dur=dur, **json.load(open(meta_path)))
+        meta0 = json.load(open(meta_path))
+        if meta0.get("huella") in (None, hu):              # sin huella: corrida de una versión anterior, se reusa (run avisa)
+            with rasterio.open(hmax_path) as s:
+                hmax = s.read(1)
+            with rasterio.open(dur_path) as s:
+                dur = s.read(1)
+            return dict(hmax=hmax, dur=dur, **meta0, sin_huella="huella" not in meta0)
+        print(f"  [{name}] cambiaron los parámetros (huella {meta0['huella']} → {hu}): se recalcula")
 
     rows, cols = z.shape
     dx = tr.a
@@ -206,7 +238,7 @@ def run_scenario(p: Project, name: str, sc: dict, z: np.ndarray, tr, params: dic
                 infil_mean_mm=float(infil_tot[core].mean() * 1000), hyetograph_mm=hyet.round(2).tolist(),
                 balance=dict(lluvia_m3=vol_rain, infiltrado_m3=vol_inf, almacenado_final_m3=vol_store, salida_bordes_m3=out_tot,
                              error_pct=100 * (vol_rain - vol_inf - vol_store - out_tot) / max(vol_rain, 1e-9)),
-                cortado=cortado, horas_simuladas=t / 3600)
+                cortado=cortado, horas_simuladas=t / 3600, huella=hu)
     meta.update(lote_por_hora(fr, lot))
     json.dump(meta, open(meta_path, "w"), indent=1)
     b = meta["balance"]
@@ -228,9 +260,9 @@ def run(p: Project) -> dict:
     cfg = p.cfg["lluvia"]
     params = dict(manning=float(cfg["manning"]), Ks_mm_h=float(cfg["Ks_mm_h"]), Ks_sat_mm_h=float(cfg["Ks_sat_mm_h"]),
                   psi_m=float(cfg["psi_m"]), dtheta=float(cfg["dtheta"]), alpha=ALPHA, h_thresh_m=H_THRESH,
-                  drenaje_h=float(cfg.get("drenaje_h", 6)), dominio_m=float(p.buffers["lluvia_m"]))
+                  drenaje_h=float(cfg.get("drenaje_h", 24)), dominio_m=float(p.buffers["lluvia_m"]))
     aoi = p.load_aoi(); out = p.out
-    primary = json.load(open(out / "terrain_primary.json"))["primary"]
+    primary = json.load(open(out / "terrain_primary.json"))["primary"]; params["dem"] = primary
     z, tr = load_dem_window(p, primary, aoi)
     res = abs(tr.a)
     print(f"DEM: {primary} dem_breach, dominio ±{params['dominio_m']/1000:g} km ({z.shape[1]}x{z.shape[0]} celdas de {res:.0f} m)")
@@ -244,14 +276,18 @@ def run(p: Project) -> dict:
     usados = []; omitidos = []
     for dem in ens_dems:
         z_d, tr_d = load_dem_window(p, dem, aoi)
-        if z_d.shape != z.shape:
-            print(f"  [aviso] {dem}: grilla {z_d.shape} ≠ {z.shape}; se omite del ensamble"); omitidos.append(dem); continue
-        jobs += [(p, f"{i}__{dem}", scen[i], z_d, tr_d, params, budget_s, lot, "ens") for i in ens_ids]
+        if z_d.shape != z.shape or not tr_d.almost_equals(tr):
+            print(f"  [aviso] {dem}: grilla {z_d.shape} ≠ {z.shape} o transformación distinta; se omite del ensamble"); omitidos.append(dem); continue
+        jobs += [(p, f"{i}__{dem}", scen[i], z_d, tr_d, dict(params, dem=dem), budget_s, lot, "ens") for i in ens_ids]
         usados.append(dem)
     json.dump(dict(dems=usados, omitidos=omitidos, ids=ens_ids, primario=primary), open(out / "rog_ensamble.json", "w"), indent=1)
     print(f"{len(jobs)} escenarios · {nproc} en paralelo")
     with ProcessPoolExecutor(nproc) as ex:
         results = dict(ex.map(_worker, jobs))          # "res" ya está usado para la resolución del DEM
+    legado = [n for n, r in results.items() if r.get("sin_huella")]
+    if legado:
+        print(f"  [aviso] {legado[0]}{f' (y {len(legado) - 1} más)' if len(legado) > 1 else ''}: corrida sin huella (versión anterior); se reusa. "
+              "Borrá data/proc/rog para recalcular")
     aoi_lab = f"{p.aoi_m:.0f} m"
     ov = []
     osm = _first(out / "osm_waterways.geojson", out / "osm_waterways_10km.geojson")
@@ -262,6 +298,9 @@ def run(p: Project) -> dict:
         ov.append((gpd.read_file(red).geometry, dict(color="deepskyblue", lw=0.8)))
     rows = []
     fids = ficha_ids(cfg)
+    podadas = podar_salidas(out, set(fids), set(scen))
+    if podadas:
+        print(f"  salidas de escenarios que ya no se configuran, borradas de out/: {', '.join(podadas)}")
     for name, sc in scen.items():
         print(f"== {name}: {sc['label']} ==")
         r = results[name]
@@ -303,9 +342,9 @@ def run(p: Project) -> dict:
         "# Rain-on-grid · lámina máxima por escenario\n\n"
         f"Landlab OverlandFlow (de Almeida et al. 2012) sobre {primary} ({res:.0f} m, dominio ±{params['dominio_m']/1000:g} km), "
         f"Manning n = {params['manning']}, Green-Ampt Ks = {params['Ks_mm_h']:g} mm/h (saturado: {params['Ks_sat_mm_h']:g}), "
-        f"ψ = {params['psi_m']} m, Δθ = {params['dtheta']}. Hietograma de bloque alterno. Sin período de retorno (no hay IDF local). "
+        f"ψ = {params['psi_m']} m, Δθ = {params['dtheta']}. Hietograma de bloque alterno (la frecuencia de cada lluvia está en la fase clima). "
         f"Columnas `*_aoi_*` = buffer de {aoi_lab}. `escurrido_pct` = 100 − infiltrado (sale por los bordes abiertos o queda almacenado; "
-        "la salida por los bordes se estima como residuo).\n\n" + df_to_md(df) + "\n")
+        "la salida por los bordes se mide por flujo en el borde, ver `balance` en data/proc/rog/<id>_meta.json).\n\n" + df_to_md(df) + "\n")
     json.dump(params, open(out / "rog_params.json", "w"), indent=1)
     lines = []
     for _, r in df.iterrows():
