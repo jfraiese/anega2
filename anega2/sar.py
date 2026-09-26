@@ -101,6 +101,9 @@ def align(arr, tr, ref_tr, ref_shape, crs: str):
     return out
 
 
+FRAC_AGUA_MAX = 0.20  # fracción máxima plausible de agua abierta en el buffer hidrológico; por encima, Otsu está separando suelo húmedo/cultivos, no agua
+
+
 def otsu_db(db: np.ndarray, mask: np.ndarray, fixed: float) -> tuple[float, str]:
     from skimage.filters import threshold_otsu
     v = db[mask & np.isfinite(db)]
@@ -110,6 +113,11 @@ def otsu_db(db: np.ndarray, mask: np.ndarray, fixed: float) -> tuple[float, str]
     if t > -13.0:  # sin agua suficiente para bimodalidad: Otsu separa suelo/vegetación, no agua
         note = f"Otsu={t:.1f} dB no plausible para agua; se usa umbral fijo {fixed:.0f} dB"
         t = float(fixed)
+    else:
+        frac = float(np.mean(v < t))
+        if frac > FRAC_AGUA_MAX:  # Otsu separa suelo húmedo/cultivos, no agua abierta
+            note = f"Otsu={t:.1f} dB marca {100*frac:.0f} % del buffer como agua (no plausible); se usa umbral fijo {fixed:.0f} dB"
+            t = float(fixed)
     return t, note
 
 
@@ -252,7 +260,8 @@ def run(p: Project) -> dict:
     (p.out / "sar_stats.md").write_text(
         "# Sentinel-1 RTC · agua detectada por evento\n\n"
         f"Fuente: Planetary Computer `sentinel-1-rtc` (gamma0 VV, 10 m). Filtro Lee 7x7, umbral de Otsu sobre el histograma "
-        f"del buffer {hidro_lab} (si Otsu > −13 dB no hay bimodalidad agua/no-agua y se usa {fixed:.0f} dB fijo). "
+        f"del buffer {hidro_lab} (si Otsu > −13 dB, o si marca más del {100*FRAC_AGUA_MAX:.0f} % del buffer como agua, "
+        f"no es plausible y se usa {fixed:.0f} dB fijo). "
         "'nueva' = agua en la escena y no en la referencia seca. Columnas: `*_500m` = buffer AOI "
         f"({aoi_lab}), `*_10km` = buffer hidrológico ({hidro_lab}).\n\n"
         "**Limitaciones**: el radar en banda C no ve el suelo bajo copas (agua bajo árboles aparece brillante por doble rebote, "
