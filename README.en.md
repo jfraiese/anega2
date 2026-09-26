@@ -26,7 +26,7 @@ anega2 run my-parcel                     # all phases (asks before large downloa
 anega2 serve                             # opens http://localhost:8000/webapp/?project=my-parcel
 ```
 
-Phases (`--fase`): `aoi` · `dem` · `terreno` · `agua` · `sar` · `lluvia` · `informe` · `kml` · `web`. Each phase
+Phases (`--fase`): `aoi` · `dem` · `terreno` · `agua` · `sar` · `lluvia` · `informe` · `ficha` · `kml` · `web`. Each phase
 reuses cached products. A full project takes 30-90 minutes (downloads + the rain simulation).
 The CRS is chosen automatically (POSGAR 2007 Gauss-Krüger zone in Argentina, UTM elsewhere). Buffers,
 rain events searched in Sentinel-1, scenarios and soil parameters live in `projects/<name>/project.yml`
@@ -35,7 +35,10 @@ rain events searched in Sentinel-1, scenarios and soil parameters live in `proje
 ## Outputs (`projects/<name>/out/`)
 
 `README.md` (report in Spanish: key numbers, verdict LOW / MEDIUM-LOW / MEDIUM / HIGH for local rain and for
-overflow, limitations, field checks, rules used), `<name>.kml`, per-phase tables (`*_stats.md/.csv`),
+overflow, limitations, field checks, rules used), `ficha_<name>.pdf` (8-page A4 landscape brief for an architect or
+engineer: summary with verdict and field checklist, regional locator, lot and drainage, contours, height above drainage,
+a cross-section of the nearest drainage line across the three DEMs and radar to tell a stream from a swale, simulated
+rain with the scenario table, satellite water history), `<name>.kml`, per-phase tables (`*_stats.md/.csv`),
 figures (`10_terrain_*`, `20_jrc_*`, `30_sar_*`, `40_rog_*`), clipped GeoTIFFs and vectors. The viewer
 (`webapp/`) shows everything on satellite imagery with Sentinel-1 scene and rain-scenario selectors and
 click-to-read values.

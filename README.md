@@ -29,7 +29,7 @@ anega2 run mi-lote                                             # todas las fases
 anega2 serve                                                   # abre el visor en http://localhost:8000/webapp/?project=mi-lote
 ```
 
-Fases (`anega2 run <nombre> --fase ...`): `aoi` · `dem` · `terreno` · `agua` · `sar` · `lluvia` · `informe` · `kml` · `web`.
+Fases (`anega2 run <nombre> --fase ...`): `aoi` · `dem` · `terreno` · `agua` · `sar` · `lluvia` · `informe` · `ficha` · `kml` · `web`.
 Cada fase reutiliza lo que ya está calculado. Un proyecto completo tarda entre 30 y 90 minutos según
 la conexión (DEMs, ~10 escenas Sentinel-1) y el CPU (la simulación de lluvia es lo más lento).
 
@@ -43,6 +43,7 @@ a buscar en Sentinel-1, escenarios y parámetros de suelo se editan en `projects
 | Archivo | Contenido |
 |---|---|
 | `README.md` | **Informe**: números clave, veredicto (BAJO / MEDIO-BAJO / MEDIO / ALTO para lluvia local y para desborde), limitaciones, qué chequear en campo y las reglas usadas |
+| `ficha_<nombre>.pdf`, `ficha/*.png` | **Ficha para arquitecto / ingeniero**: 8 páginas A4 apaisadas sobre imagen satelital, con leyenda, escala y pie de página. Resumen con veredicto y qué hacer · ubicación regional · lote y drenaje · cotas · altura sobre el drenaje (HAND) · el drenaje más cercano de cerca (perfil transversal con los tres DEM y radar: ¿arroyo o vaguada?) · lluvias simuladas con tabla de escenarios · agua vista por satélite |
 | `<nombre>.kml` | KML único: lote, buffer, arroyos OSM, red de drenaje, cuenca aportante, camino de flujo, depresiones, HAND ≤ 1 / ≤ 2 m, manchas de agua simuladas |
 | `terrain_stats.md`, `jrc_stats.md`, `sar_stats.md`, `rog_stats.md` | tablas por fase (también en CSV) |
 | `10_terrain_*.png`, `20_jrc_*.png`, `30_sar_*.png`, `40_rog_*.png` | figuras con el lote superpuesto |
