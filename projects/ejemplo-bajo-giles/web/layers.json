@@ -6,7 +6,7 @@
 "hidro_m": 10000.0,
 "res_m": 30.0,
 "primary": "fabdem",
-"generado": "2026-09-03T18:13:12",
+"generado": "2026-09-26T17:37:22",
 "center": [
 -34.403760000616124,
 -59.42047999998264
@@ -230,24 +230,32 @@
 ]
 ],
 "legend": {
-"type": "gradient",
-"vmin": 0,
-"vmax": 6,
-"unit": "m",
-"stops": [
-"#a50026",
-"#de402e",
-"#f98e52",
-"#fed485",
-"#feffc0",
-"#d1ecf4",
-"#8ec2dc",
-"#4f81ba",
-"#313695"
+"type": "classes",
+"classes": [
+{
+"value": 0,
+"label": "menos de 0,5 m",
+"color": "#b71c1c"
+},
+{
+"value": 1,
+"label": "0,5 – 1 m",
+"color": "#f4511e"
+},
+{
+"value": 2,
+"label": "1 – 2 m",
+"color": "#ffb300"
+},
+{
+"value": 3,
+"label": "2 – 5 m",
+"color": "#fff3c4"
+}
 ]
 },
-"visible": true,
-"description": "Altura sobre la celda de drenaje a la que escurre cada celda. Rojo = bajo."
+"visible": false,
+"description": "Cuántos metros tendría que subir el agua desde el drenaje para llegar. Rojo = bajo; sin color = más de 5 m."
 },
 {
 "id": "slope",
@@ -509,78 +517,6 @@
 "description": "Escena S1A_IW_GRDH_1SDV_20230225T091530_20230225T091555_047390_05B052_rtc"
 },
 {
-"id": "sar_db_20150818post",
-"title": "S1 γ⁰ VV dB · 2015-08-18 · 2015-08 (post)",
-"group": "Histórico",
-"subgroup": "sar_db",
-"type": "image",
-"url": "img/sar_db_20150818post.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "gradient",
-"vmin": -25,
-"vmax": 0,
-"unit": "dB",
-"stops": [
-"#000000",
-"#202020",
-"#404040",
-"#606060",
-"#808080",
-"#a0a0a0",
-"#c0c0c0",
-"#e0e0e0",
-"#ffffff"
-]
-},
-"visible": false,
-"description": "Escena S1A_IW_GRDH_1SSV_20150818T091444_20150818T091508_007315_00A0A9_rtc"
-},
-{
-"id": "sar_w_20150818post",
-"title": "S1 agua · 2015-08-18 · 2015-08 (post)",
-"group": "Histórico",
-"subgroup": "sar_w",
-"type": "image",
-"url": "img/sar_w_20150818post.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "classes",
-"classes": [
-{
-"value": 1,
-"label": "agua (también en ref. seca)",
-"color": "#1f4fd8"
-},
-{
-"value": 2,
-"label": "agua nueva",
-"color": "#e31a1c"
-}
-]
-},
-"visible": false,
-"description": ""
-},
-{
 "id": "sar_db_20240303pre",
 "title": "S1 γ⁰ VV dB · 2024-03-03 · 2024-03 (pre)",
 "group": "Histórico",
@@ -653,150 +589,6 @@
 "description": ""
 },
 {
-"id": "sar_db_20240327post",
-"title": "S1 γ⁰ VV dB · 2024-03-27 · 2024-03 (post)",
-"group": "Histórico",
-"subgroup": "sar_db",
-"type": "image",
-"url": "img/sar_db_20240327post.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "gradient",
-"vmin": -25,
-"vmax": 0,
-"unit": "dB",
-"stops": [
-"#000000",
-"#202020",
-"#404040",
-"#606060",
-"#808080",
-"#a0a0a0",
-"#c0c0c0",
-"#e0e0e0",
-"#ffffff"
-]
-},
-"visible": false,
-"description": "Escena S1A_IW_GRDH_1SDV_20240327T091535_20240327T091600_053165_0670F5_rtc"
-},
-{
-"id": "sar_w_20240327post",
-"title": "S1 agua · 2024-03-27 · 2024-03 (post)",
-"group": "Histórico",
-"subgroup": "sar_w",
-"type": "image",
-"url": "img/sar_w_20240327post.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "classes",
-"classes": [
-{
-"value": 1,
-"label": "agua (también en ref. seca)",
-"color": "#1f4fd8"
-},
-{
-"value": 2,
-"label": "agua nueva",
-"color": "#e31a1c"
-}
-]
-},
-"visible": false,
-"description": ""
-},
-{
-"id": "sar_db_20250509pre",
-"title": "S1 γ⁰ VV dB · 2025-05-09 · 2025-05 (pre)",
-"group": "Histórico",
-"subgroup": "sar_db",
-"type": "image",
-"url": "img/sar_db_20250509pre.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "gradient",
-"vmin": -25,
-"vmax": 0,
-"unit": "dB",
-"stops": [
-"#000000",
-"#202020",
-"#404040",
-"#606060",
-"#808080",
-"#a0a0a0",
-"#c0c0c0",
-"#e0e0e0",
-"#ffffff"
-]
-},
-"visible": false,
-"description": "Escena S1A_IW_GRDH_1SDV_20250509T091529_20250509T091554_059115_rtc"
-},
-{
-"id": "sar_w_20250509pre",
-"title": "S1 agua · 2025-05-09 · 2025-05 (pre)",
-"group": "Histórico",
-"subgroup": "sar_w",
-"type": "image",
-"url": "img/sar_w_20250509pre.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "classes",
-"classes": [
-{
-"value": 1,
-"label": "agua (también en ref. seca)",
-"color": "#1f4fd8"
-},
-{
-"value": 2,
-"label": "agua nueva",
-"color": "#e31a1c"
-}
-]
-},
-"visible": false,
-"description": ""
-},
-{
 "id": "sar_db_20250515pre",
 "title": "S1 γ⁰ VV dB · 2025-05-15 · 2025-05 (pre)",
 "group": "Histórico",
@@ -840,78 +632,6 @@
 "subgroup": "sar_w",
 "type": "image",
 "url": "img/sar_w_20250515pre.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "classes",
-"classes": [
-{
-"value": 1,
-"label": "agua (también en ref. seca)",
-"color": "#1f4fd8"
-},
-{
-"value": 2,
-"label": "agua nueva",
-"color": "#e31a1c"
-}
-]
-},
-"visible": false,
-"description": ""
-},
-{
-"id": "sar_db_20250527post",
-"title": "S1 γ⁰ VV dB · 2025-05-27 · 2025-05 (post)",
-"group": "Histórico",
-"subgroup": "sar_db",
-"type": "image",
-"url": "img/sar_db_20250527post.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "gradient",
-"vmin": -25,
-"vmax": 0,
-"unit": "dB",
-"stops": [
-"#000000",
-"#202020",
-"#404040",
-"#606060",
-"#808080",
-"#a0a0a0",
-"#c0c0c0",
-"#e0e0e0",
-"#ffffff"
-]
-},
-"visible": false,
-"description": "Escena S1C_IW_GRDH_1SDV_20250527T091415_20250527T091440_002514_rtc"
-},
-{
-"id": "sar_w_20250527post",
-"title": "S1 agua · 2025-05-27 · 2025-05 (post)",
-"group": "Histórico",
-"subgroup": "sar_w",
-"type": "image",
-"url": "img/sar_w_20250527post.png",
 "bounds": [
 [
 -34.43147739216032,
@@ -1085,78 +805,6 @@
 "description": ""
 },
 {
-"id": "sar_db_20260616post",
-"title": "S1 γ⁰ VV dB · 2026-06-16 · 2026-06 (post)",
-"group": "Histórico",
-"subgroup": "sar_db",
-"type": "image",
-"url": "img/sar_db_20260616post.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "gradient",
-"vmin": -25,
-"vmax": 0,
-"unit": "dB",
-"stops": [
-"#000000",
-"#202020",
-"#404040",
-"#606060",
-"#808080",
-"#a0a0a0",
-"#c0c0c0",
-"#e0e0e0",
-"#ffffff"
-]
-},
-"visible": false,
-"description": "Escena S1D_IW_GRDH_1SDV_20260616T091440_20260616T091505_003259_005B26_rtc"
-},
-{
-"id": "sar_w_20260616post",
-"title": "S1 agua · 2026-06-16 · 2026-06 (post)",
-"group": "Histórico",
-"subgroup": "sar_w",
-"type": "image",
-"url": "img/sar_w_20260616post.png",
-"bounds": [
-[
--34.43147739216032,
--59.45402028492014
-],
-[
--34.37598683728235,
--59.387092263407176
-]
-],
-"legend": {
-"type": "classes",
-"classes": [
-{
-"value": 1,
-"label": "agua (también en ref. seca)",
-"color": "#1f4fd8"
-},
-{
-"value": 2,
-"label": "agua nueva",
-"color": "#e31a1c"
-}
-]
-},
-"visible": false,
-"description": ""
-},
-{
 "id": "rog_h_P050_24h",
 "title": "Lámina máxima · 50 mm en 24 h (m)",
 "group": "Simulación",
@@ -1229,95 +877,6 @@
 },
 "visible": false,
 "description": ""
-},
-{
-"id": "rog_h_P060_2h",
-"title": "Lámina máxima · 60 mm en 2 h (m)",
-"group": "Simulación",
-"subgroup": "rog_h",
-"type": "image",
-"url": "img/rog_h_P060_2h.png",
-"bounds": [
-[
--34.44885286173787,
--59.47540825663401
-],
-[
--34.358197345362306,
--59.36618726432375
-]
-],
-"legend": {
-"type": "gradient",
-"vmin": 0,
-"vmax": 0.5,
-"unit": "m",
-"stops": [
-"#f7fbff",
-"#deebf7",
-"#c6dbef",
-"#9dcae1",
-"#6aaed6",
-"#4191c6",
-"#2070b4",
-"#08509b",
-"#08306b"
-]
-},
-"visible": false,
-"description": ""
-},
-{
-"id": "rog_d_P060_2h",
-"title": "Duración > 5 cm · 60 mm en 2 h (h)",
-"group": "Simulación",
-"subgroup": "rog_d",
-"type": "image",
-"url": "img/rog_d_P060_2h.png",
-"bounds": [
-[
--34.44885286173787,
--59.47540825663401
-],
-[
--34.358197345362306,
--59.36618726432375
-]
-],
-"legend": {
-"type": "gradient",
-"vmin": 0,
-"vmax": 24,
-"unit": "h",
-"stops": [
-"#ffffd9",
-"#edf8b1",
-"#c6e9b4",
-"#7ecdbb",
-"#40b5c4",
-"#1d90c0",
-"#225da8",
-"#243392",
-"#081d58"
-]
-},
-"visible": false,
-"description": ""
-},
-{
-"id": "rog_v_P060_2h",
-"title": "Mancha > 5 cm · 60 mm en 2 h",
-"group": "Simulación",
-"type": "geojson",
-"url": "geo/rog_v_P060_2h.geojson",
-"style": {
-"color": "#0033aa",
-"weight": 1,
-"fillOpacity": 0.35
-},
-"visible": false,
-"description": "",
-"n": 59
 },
 {
 "id": "rog_h_P100_24h",
@@ -1406,7 +965,7 @@
 },
 "visible": false,
 "description": "",
-"n": 54
+"n": 58
 },
 {
 "id": "rog_h_P100_24h_sat",
@@ -1673,7 +1232,7 @@
 },
 "visible": false,
 "description": "",
-"n": 57
+"n": 54
 },
 {
 "id": "rog_h_P200_24h",
@@ -1762,7 +1321,7 @@
 },
 "visible": false,
 "description": "",
-"n": 55
+"n": 56
 }
 ],
 "scenes": [
@@ -1784,23 +1343,6 @@
 "pct_500m_caida_3dB": null
 },
 {
-"id": "20150818post",
-"label": "2015-08-18 · 2015-08 (post)",
-"evento": "2015-08_agosto2015",
-"fecha": "2015-08-18",
-"momento": "post",
-"escena": "S1A_IW_GRDH_1SSV_20150818T091444_20150818T091508_007315_00A0A9_rtc",
-"db_layer": "sar_db_20150818post",
-"w_layer": "sar_w_20150818post",
-"umbral_dB": -18.0,
-"pct_agua_lote": 0.0,
-"pct_agua_500m": 0.0,
-"pct_agua_10km": 0.06,
-"dB_medio_lote": -11.26,
-"dB_dif_lote": -2.97,
-"pct_500m_caida_3dB": 7.22
-},
-{
 "id": "20240303pre",
 "label": "2024-03-03 · 2024-03 (pre)",
 "evento": "2024-03_marzo2024",
@@ -1818,40 +1360,6 @@
 "pct_500m_caida_3dB": 0.36
 },
 {
-"id": "20240327post",
-"label": "2024-03-27 · 2024-03 (post)",
-"evento": "2024-03_marzo2024",
-"fecha": "2024-03-27",
-"momento": "post",
-"escena": "S1A_IW_GRDH_1SDV_20240327T091535_20240327T091600_053165_0670F5_rtc",
-"db_layer": "sar_db_20240327post",
-"w_layer": "sar_w_20240327post",
-"umbral_dB": -18.0,
-"pct_agua_lote": 0.0,
-"pct_agua_500m": 0.0,
-"pct_agua_10km": 0.04,
-"dB_medio_lote": -7.94,
-"dB_dif_lote": 0.36,
-"pct_500m_caida_3dB": 0.1
-},
-{
-"id": "20250509pre",
-"label": "2025-05-09 · 2025-05 (pre)",
-"evento": "2025-05_mayo2025",
-"fecha": "2025-05-09",
-"momento": "pre",
-"escena": "S1A_IW_GRDH_1SDV_20250509T091529_20250509T091554_059115_rtc",
-"db_layer": "sar_db_20250509pre",
-"w_layer": "sar_w_20250509pre",
-"umbral_dB": -18.0,
-"pct_agua_lote": 0.0,
-"pct_agua_500m": 0.0,
-"pct_agua_10km": 0.01,
-"dB_medio_lote": -9.78,
-"dB_dif_lote": -1.49,
-"pct_500m_caida_3dB": 1.34
-},
-{
 "id": "20250515pre",
 "label": "2025-05-15 · 2025-05 (pre)",
 "evento": "2025-05_mayo2025",
@@ -1867,23 +1375,6 @@
 "dB_medio_lote": -11.96,
 "dB_dif_lote": -3.67,
 "pct_500m_caida_3dB": 16.16
-},
-{
-"id": "20250527post",
-"label": "2025-05-27 · 2025-05 (post)",
-"evento": "2025-05_mayo2025",
-"fecha": "2025-05-27",
-"momento": "post",
-"escena": "S1C_IW_GRDH_1SDV_20250527T091415_20250527T091440_002514_rtc",
-"db_layer": "sar_db_20250527post",
-"w_layer": "sar_w_20250527post",
-"umbral_dB": -18.0,
-"pct_agua_lote": 0.0,
-"pct_agua_500m": 0.0,
-"pct_agua_10km": 0.0,
-"dB_medio_lote": -9.23,
-"dB_dif_lote": -0.94,
-"pct_500m_caida_3dB": 1.33
 },
 {
 "id": "20260604pre",
@@ -1918,23 +1409,6 @@
 "dB_medio_lote": -5.57,
 "dB_dif_lote": 2.73,
 "pct_500m_caida_3dB": 0.21
-},
-{
-"id": "20260616post",
-"label": "2026-06-16 · 2026-06 (post)",
-"evento": "2026-06_junio2026",
-"fecha": "2026-06-16",
-"momento": "post",
-"escena": "S1D_IW_GRDH_1SDV_20260616T091440_20260616T091505_003259_005B26_rtc",
-"db_layer": "sar_db_20260616post",
-"w_layer": "sar_w_20260616post",
-"umbral_dB": -18.0,
-"pct_agua_lote": 0.0,
-"pct_agua_500m": 0.0,
-"pct_agua_10km": 0.0,
-"dB_medio_lote": -6.49,
-"dB_dif_lote": 1.8,
-"pct_500m_caida_3dB": 0.98
 }
 ],
 "scenarios": [
@@ -1971,76 +1445,30 @@
 ],
 "Ks_mm_h": 10.0,
 "balance": {
-"lluvia_m3": 4930244.999999939,
-"infiltrado_m3": 4044342.485642902,
-"almacenado_final_m3": 0.00031522773433232136,
-"salida_bordes_m3": 59760.00000000057,
-"error_pct": 16.75662191314669
+"lluvia_m3": 4990004.9999999385,
+"infiltrado_m3": 4928932.355027432,
+"almacenado_final_m3": 0.0,
+"salida_bordes_m3": 59313.901975335306,
+"error_pct": 0.03524531532877475
 },
 "h_layer": "rog_h_P050_24h",
 "d_layer": "rog_d_P050_24h",
 "v_layer": null,
 "hmax_lote_m": 0.001,
-"hmedia_lote_m": 0.0,
+"hmedia_lote_m": 0.001,
 "pct_lote_gt5cm": 0.0,
 "pct_lote_gt20cm": 0.0,
 "dur_max_lote_h": 0.0,
-"hmax_aoi_m": 0.002,
-"hmedia_aoi_m": 0.0,
+"hmax_aoi_m": 0.003,
+"hmedia_aoi_m": 0.001,
 "pct_aoi_gt5cm": 0.0,
 "pct_aoi_gt20cm": 0.0,
-"infil_media_mm": 41.016,
-"escurrido_pct": 17.969,
+"infil_media_mm": 49.987,
+"escurrido_pct": 1.224,
 "almacenado_final_pct": 0.0,
-"t_sim_h": 30.0,
-"pasos": 1800,
-"wall_min": 1.192
-},
-{
-"id": "P060_2h",
-"label": "60 mm en 2 h",
-"P_mm": 60.0,
-"dur_h": 2.0,
-"hyetograph_mm": [
-2.0,
-2.0,
-3.0,
-4.0,
-4.0,
-9.0,
-15.0,
-9.0,
-4.0,
-3.0,
-3.0,
-2.0
-],
-"Ks_mm_h": 10.0,
-"balance": {
-"lluvia_m3": 5916294.000000001,
-"infiltrado_m3": 5195777.125529131,
-"almacenado_final_m3": 319474.739865622,
-"salida_bordes_m3": 71712.00000000001,
-"error_pct": 5.566493730792417
-},
-"h_layer": "rog_h_P060_2h",
-"d_layer": "rog_d_P060_2h",
-"v_layer": "rog_v_P060_2h",
-"hmax_lote_m": 0.062,
-"hmedia_lote_m": 0.028,
-"pct_lote_gt5cm": 4.0,
-"pct_lote_gt20cm": 0.0,
-"dur_max_lote_h": 2.825,
-"hmax_aoi_m": 0.349,
-"hmedia_aoi_m": 0.064,
-"pct_aoi_gt5cm": 27.311,
-"pct_aoi_gt20cm": 11.69,
-"infil_media_mm": 52.693,
-"escurrido_pct": 12.179,
-"almacenado_final_pct": 5.4,
-"t_sim_h": 8.0,
-"pasos": 3391,
-"wall_min": 2.387
+"t_sim_h": 48.0,
+"pasos": 2880,
+"wall_min": 3.292
 },
 {
 "id": "P100_24h",
@@ -2075,30 +1503,30 @@
 ],
 "Ks_mm_h": 10.0,
 "balance": {
-"lluvia_m3": 9860489.999999978,
-"infiltrado_m3": 7543634.900747379,
-"almacenado_final_m3": 65524.48469106693,
-"salida_bordes_m3": 119519.99999999962,
-"error_pct": 21.61972289979034
+"lluvia_m3": 9980009.99999992,
+"infiltrado_m3": 9254043.508642076,
+"almacenado_final_m3": 8826.925062152173,
+"salida_bordes_m3": 712840.9122608355,
+"error_pct": 0.04307264256104578
 },
 "h_layer": "rog_h_P100_24h",
 "d_layer": "rog_d_P100_24h",
 "v_layer": "rog_v_P100_24h",
-"hmax_lote_m": 0.082,
-"hmedia_lote_m": 0.026,
+"hmax_lote_m": 0.091,
+"hmedia_lote_m": 0.027,
 "pct_lote_gt5cm": 8.0,
 "pct_lote_gt20cm": 0.0,
-"dur_max_lote_h": 3.622,
-"hmax_aoi_m": 0.377,
-"hmedia_aoi_m": 0.069,
-"pct_aoi_gt5cm": 28.055,
-"pct_aoi_gt20cm": 14.559,
-"infil_media_mm": 76.504,
-"escurrido_pct": 23.496,
-"almacenado_final_pct": 0.665,
-"t_sim_h": 30.0,
-"pasos": 9074,
-"wall_min": 6.235
+"dur_max_lote_h": 3.875,
+"hmax_aoi_m": 0.389,
+"hmedia_aoi_m": 0.072,
+"pct_aoi_gt5cm": 29.012,
+"pct_aoi_gt20cm": 15.515,
+"infil_media_mm": 93.85,
+"escurrido_pct": 7.274,
+"almacenado_final_pct": 0.088,
+"t_sim_h": 48.0,
+"pasos": 16830,
+"wall_min": 19.546
 },
 {
 "id": "P100_24h_sat",
@@ -2133,30 +1561,30 @@
 ],
 "Ks_mm_h": 1.9999999999999998,
 "balance": {
-"lluvia_m3": 9860489.99999991,
-"infiltrado_m3": 4705301.371464424,
-"almacenado_final_m3": 808049.5865674668,
-"salida_bordes_m3": 119519.99999999926,
-"error_pct": 42.874330200305046
+"lluvia_m3": 9980009.999999981,
+"infiltrado_m3": 5586731.510541395,
+"almacenado_final_m3": 606475.3947469626,
+"salida_bordes_m3": 3787848.8422085242,
+"error_pct": -0.010478421333251333
 },
 "h_layer": "rog_h_P100_24h_sat",
 "d_layer": "rog_d_P100_24h_sat",
 "v_layer": "rog_v_P100_24h_sat",
-"hmax_lote_m": 0.483,
-"hmedia_lote_m": 0.203,
+"hmax_lote_m": 0.493,
+"hmedia_lote_m": 0.21,
 "pct_lote_gt5cm": 76.0,
-"pct_lote_gt20cm": 48.0,
-"dur_max_lote_h": 9.588,
-"hmax_aoi_m": 0.843,
-"hmedia_aoi_m": 0.222,
-"pct_aoi_gt5cm": 54.304,
-"pct_aoi_gt20cm": 35.6,
-"infil_media_mm": 47.719,
-"escurrido_pct": 52.281,
-"almacenado_final_pct": 8.195,
-"t_sim_h": 30.0,
-"pasos": 11730,
-"wall_min": 8.841
+"pct_lote_gt20cm": 52.0,
+"dur_max_lote_h": 9.647,
+"hmax_aoi_m": 0.856,
+"hmedia_aoi_m": 0.226,
+"pct_aoi_gt5cm": 54.516,
+"pct_aoi_gt20cm": 36.132,
+"infil_media_mm": 56.658,
+"escurrido_pct": 44.021,
+"almacenado_final_pct": 6.077,
+"t_sim_h": 48.0,
+"pasos": 23187,
+"wall_min": 29.41
 },
 {
 "id": "P150_24h",
@@ -2191,30 +1619,30 @@
 ],
 "Ks_mm_h": 10.0,
 "balance": {
-"lluvia_m3": 14790734.999999972,
-"infiltrado_m3": 9964742.925007546,
-"almacenado_final_m3": 329524.4057097268,
-"salida_bordes_m3": 179279.9999999995,
-"error_pct": 29.188459324588724
+"lluvia_m3": 14970014.999999985,
+"infiltrado_m3": 12047323.150874203,
+"almacenado_final_m3": 149741.0657805391,
+"salida_bordes_m3": 2769588.471771253,
+"error_pct": 0.02246030865025959
 },
 "h_layer": "rog_h_P150_24h",
 "d_layer": "rog_d_P150_24h",
 "v_layer": "rog_v_P150_24h",
-"hmax_lote_m": 0.429,
-"hmedia_lote_m": 0.165,
-"pct_lote_gt5cm": 64.0,
-"pct_lote_gt20cm": 36.0,
-"dur_max_lote_h": 7.299,
-"hmax_aoi_m": 0.781,
-"hmedia_aoi_m": 0.202,
-"pct_aoi_gt5cm": 53.135,
-"pct_aoi_gt20cm": 33.9,
-"infil_media_mm": 101.057,
-"escurrido_pct": 32.628,
-"almacenado_final_pct": 2.228,
-"t_sim_h": 30.0,
-"pasos": 10724,
-"wall_min": 7.431
+"hmax_lote_m": 0.438,
+"hmedia_lote_m": 0.171,
+"pct_lote_gt5cm": 68.0,
+"pct_lote_gt20cm": 44.0,
+"dur_max_lote_h": 7.327,
+"hmax_aoi_m": 0.79,
+"hmedia_aoi_m": 0.206,
+"pct_aoi_gt5cm": 53.454,
+"pct_aoi_gt20cm": 34.219,
+"infil_media_mm": 122.178,
+"escurrido_pct": 19.524,
+"almacenado_final_pct": 1.0,
+"t_sim_h": 48.0,
+"pasos": 20048,
+"wall_min": 24.157
 },
 {
 "id": "P150_24h_sat",
@@ -2249,30 +1677,30 @@
 ],
 "Ks_mm_h": 1.9999999999999998,
 "balance": {
-"lluvia_m3": 14790734.999999871,
-"infiltrado_m3": 5695874.758670536,
-"almacenado_final_m3": 1374559.3142122538,
-"salida_bordes_m3": 179280.0000000007,
-"error_pct": 50.98476125166969
+"lluvia_m3": 14970014.999999909,
+"infiltrado_m3": 6562664.519561044,
+"almacenado_final_m3": 1031747.3996965049,
+"salida_bordes_m3": 7371276.033875409,
+"error_pct": 0.02890475972771215
 },
 "h_layer": "rog_h_P150_24h_sat",
 "d_layer": "rog_d_P150_24h_sat",
 "v_layer": "rog_v_P150_24h_sat",
-"hmax_lote_m": 1.672,
-"hmedia_lote_m": 0.904,
+"hmax_lote_m": 1.475,
+"hmedia_lote_m": 0.824,
 "pct_lote_gt5cm": 100.0,
 "pct_lote_gt20cm": 100.0,
-"dur_max_lote_h": 11.243,
-"hmax_aoi_m": 2.469,
-"hmedia_aoi_m": 0.68,
-"pct_aoi_gt5cm": 67.163,
-"pct_aoi_gt20cm": 54.091,
-"infil_media_mm": 57.765,
-"escurrido_pct": 61.49,
-"almacenado_final_pct": 9.293,
-"t_sim_h": 30.0,
-"pasos": 14178,
-"wall_min": 11.593
+"dur_max_lote_h": 11.29,
+"hmax_aoi_m": 2.436,
+"hmedia_aoi_m": 0.662,
+"pct_aoi_gt5cm": 66.844,
+"pct_aoi_gt20cm": 53.348,
+"infil_media_mm": 66.555,
+"escurrido_pct": 56.161,
+"almacenado_final_pct": 6.892,
+"t_sim_h": 48.0,
+"pasos": 27315,
+"wall_min": 36.197
 },
 {
 "id": "P200_24h",
@@ -2307,30 +1735,30 @@
 ],
 "Ks_mm_h": 10.0,
 "balance": {
-"lluvia_m3": 19720979.99999982,
-"infiltrado_m3": 11523133.718874684,
-"almacenado_final_m3": 740693.2367416275,
-"salida_bordes_m3": 239039.99999999988,
-"error_pct": 36.601188401304476
+"lluvia_m3": 19960020.38409082,
+"infiltrado_m3": 14052287.972996768,
+"almacenado_final_m3": 427698.67447304126,
+"salida_bordes_m3": 5476105.710727869,
+"error_pct": 0.0196794683449894
 },
 "h_layer": "rog_h_P200_24h",
 "d_layer": "rog_d_P200_24h",
 "v_layer": "rog_v_P200_24h",
-"hmax_lote_m": 0.765,
-"hmedia_lote_m": 0.448,
+"hmax_lote_m": 0.769,
+"hmedia_lote_m": 0.452,
 "pct_lote_gt5cm": 96.0,
 "pct_lote_gt20cm": 88.0,
-"dur_max_lote_h": 8.302,
-"hmax_aoi_m": 1.775,
-"hmedia_aoi_m": 0.363,
+"dur_max_lote_h": 8.316,
+"hmax_aoi_m": 1.39,
+"hmedia_aoi_m": 0.361,
 "pct_aoi_gt5cm": 62.912,
-"pct_aoi_gt20cm": 46.546,
-"infil_media_mm": 116.862,
-"escurrido_pct": 41.569,
-"almacenado_final_pct": 3.756,
-"t_sim_h": 30.0,
-"pasos": 12716,
-"wall_min": 9.238
+"pct_aoi_gt20cm": 46.652,
+"infil_media_mm": 142.511,
+"escurrido_pct": 29.598,
+"almacenado_final_pct": 2.143,
+"t_sim_h": 48.0,
+"pasos": 23942,
+"wall_min": 29.538
 }
 ]
 }
