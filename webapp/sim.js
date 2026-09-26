@@ -35,7 +35,8 @@ const Sim = (() => {
     const H = w === 0 ? a.h.length : Math.min(a.h.length, b.h.length);
     const mix = k => a[k].slice(0, H).map((f, t) => (w === 0 ? f : Lib.lerp(f, b[k][t], w)));
     const eLo = idx.escenarios[idDe(lo, dur, suelo)], eHi = idx.escenarios[idDe(hi, dur, suelo)];
-    return { h: mix('h'), c5: mix('c5'), c20: mix('c20'), lo, hi, w, ensamble: eLo.ensamble, cortado: !!(eLo.cortado || (w > 0 && eHi.cortado)) };
+    return { h: mix('h'), c5: mix('c5'), c20: mix('c20'), lo, hi, w, ensamble: eLo.ensamble, cortado: !!(eLo.cortado || (w > 0 && eHi.cortado)),
+             loteLo: eLo.lote, loteHi: eHi.lote };
   }
   // azules por profundidad; alpha por nivel de certeza; < 2 cm transparente
   const STOPS = [[2, [198, 219, 239]], [5, [107, 174, 214]], [20, [33, 113, 181]], [50, [8, 69, 148]], [100, [8, 48, 107]]];

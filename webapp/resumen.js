@@ -16,6 +16,9 @@ const Resumen = (() => {
     const g = gumbel('era5'); if (!g) return 100;
     const mm = g.mu - g.beta * Math.log(-Math.log(0.9)); return Math.min(250, Math.max(25, Math.round(mm / 5) * 5));
   }
+  // estadísticas del lote: serie nativa (30 m, desde <id>_meta.json vía index.json) si está disponible;
+  // si no (datos generados antes de este cambio), se cae a la serie recalculada de los cuadros 3857.
+  const serieLote = (m, u) => (m.loteLo ? Lib.loteSerieNativa(m.loteLo, m.loteHi, m.w, u) : Lib.loteSerie(m.h, Sim.idx.lote_idx, u));
   async function actualizar(mantenerHora = true) {
     const mio = ++seq;                                   // el deslizador dispara muchas llamadas: sólo vale la última
     let m;
@@ -25,7 +28,7 @@ const Resumen = (() => {
     if (mio !== seq) return;
     R.mezcla = m;
     const H = R.mezcla.h.length; $('#r-t').max = H - 1;
-    const serie = Lib.loteSerie(R.mezcla.h, Sim.idx.lote_idx, R.u);
+    const serie = serieLote(R.mezcla, R.u);
     if (!mantenerHora || R.t >= H) R.t = serie.horaPico;
     $('#r-t').value = R.t; $('#r-cortado').hidden = !R.mezcla.cortado;
     pintarHora(); frase(serie); curva(serie); maximos();
@@ -116,7 +119,7 @@ const Resumen = (() => {
     const P = Math.min(250, Math.max(25, Math.round(ev.era5_72 / 5) * 5));
     let modelo;
     try {
-      const m = await Sim.mezcla(P, 72, 'normal'), s = Lib.loteSerie(m.h, Sim.idx.lote_idx, 5), hp = s.horaPico;
+      const m = await Sim.mezcla(P, 72, 'normal'), s = serieLote(m, 5), hp = s.horaPico;
       modelo = s.hmax[hp] < 5 ? 'el modelo no pone agua en el lote' : `el modelo pone hasta ${s.hmax[hp]} cm en el ${Lib.fmt(s.pct[hp])} % del lote`;
     } catch (e) { console.error(e); modelo = 'no hay simulación de 72 h para compararla'; }
     if (mio !== seqEv) return;                           // llegó tarde: ya se eligió otro evento

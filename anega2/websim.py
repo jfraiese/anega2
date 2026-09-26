@@ -98,10 +98,17 @@ def run(p: Project) -> dict:
         escribir_gz(out / f"{s['id']}_cert.bin.gz", np.stack([certeza(por_dem, u) for u in UMBRALES]))
         meta_p = rogd / f"{s['id']}_meta.json"
         meta = json.load(open(meta_p)) if meta_p.exists() else {}
-        idx["escenarios"][s["id"]] = dict(P_mm=s["P_mm"], dur_h=s["dur_h"], suelo=s["suelo"], horas=int(fr.shape[0]),
-                                          lluvia_acum_mm=[round(float(v), 1) for v in z["lluvia_acum_mm"]], ensamble=dems,
-                                          cortado=bool(meta.get("cortado", False)),
-                                          url=f"sim/{s['id']}.bin.gz", cert_url=f"sim/{s['id']}_cert.bin.gz")
+        horas = int(fr.shape[0])
+        esc = dict(P_mm=s["P_mm"], dur_h=s["dur_h"], suelo=s["suelo"], horas=horas,
+                   lluvia_acum_mm=[round(float(v), 1) for v in z["lluvia_acum_mm"]], ensamble=dems,
+                   cortado=bool(meta.get("cortado", False)),
+                   url=f"sim/{s['id']}.bin.gz", cert_url=f"sim/{s['id']}_cert.bin.gz")
+        hmax_cm, pct5, pct20 = meta.get("hmax_lote_cm"), meta.get("pct_lote_gt5cm"), meta.get("pct_lote_gt20cm")
+        # estadísticas del lote en la grilla nativa (30 m): la reproyección a 3857 con vecino más cercano
+        # puede perder la celda de borde con el pico (ver ruling); si falta algo en el meta, se omite "lote".
+        if hmax_cm is not None and pct5 is not None and pct20 is not None and len(hmax_cm) == horas and len(pct5) == horas and len(pct20) == horas:
+            esc["lote"] = dict(hmax_cm=hmax_cm, pct5=pct5, pct20=pct20)
+        idx["escenarios"][s["id"]] = esc
     cl = p.out / "clima.json"
     idx["clima"] = json.load(open(cl)) if cl.exists() else {"disponible": False}
     json.dump(idx, open(out / "index.json", "w"), ensure_ascii=False)

@@ -27,6 +27,33 @@ test('loteSerie lote vacío', () => {
   assert.deepStrictEqual(s.pct, [0, 0, 0]);
   assert.strictEqual(s.horasConAgua, 0);
 });
+test('loteSerieNativa lerpea entre escenarios (w=0.5)', () => {
+  const a = { hmax_cm: [0, 10, 4], pct5: [0, 40, 20], pct20: [0, 5, 0] };
+  const b = { hmax_cm: [0, 20, 8], pct5: [0, 60, 40], pct20: [0, 15, 10] };
+  const s = Lib.loteSerieNativa(a, b, 0.5, 5);
+  assert.deepStrictEqual(s.hmax, [0, 15, 6]);
+  assert.deepStrictEqual(s.pct, [0, 50, 30]);
+  assert.strictEqual(s.horasConAgua, 2); assert.strictEqual(s.horaPico, 1);
+});
+test('loteSerieNativa w=0 usa sólo A (aunque haya B)', () => {
+  const a = { hmax_cm: [0, 9], pct5: [0, 100], pct20: [0, 0] };
+  const b = { hmax_cm: [0, 90], pct5: [0, 100], pct20: [0, 100] };
+  const s = Lib.loteSerieNativa(a, b, 0, 5);
+  assert.deepStrictEqual(s.hmax, [0, 9]);
+  assert.deepStrictEqual(s.pct, [0, 100]);
+});
+test('loteSerieNativa sin B (missing) usa A', () => {
+  const a = { hmax_cm: [0, 9, 3], pct5: [0, 100, 10], pct20: [0, 0, 0] };
+  const s = Lib.loteSerieNativa(a, null, 0, 5);
+  assert.deepStrictEqual(s.hmax, [0, 9, 3]);
+  assert.strictEqual(s.horaPico, 1);
+});
+test('loteSerieNativa umbral 20 usa pct20', () => {
+  const a = { hmax_cm: [0, 25], pct5: [0, 80], pct20: [0, 30] };
+  const s = Lib.loteSerieNativa(a, null, 0, 20);
+  assert.deepStrictEqual(s.pct, [0, 30]);
+  assert.strictEqual(s.horasConAgua, 1);
+});
 test('nivelCerteza', () => {
   assert.deepStrictEqual([80, 70, 50, 10, 4].map(Lib.nivelCerteza), ['probable', 'probable', 'posible', 'poco', null]);
 });

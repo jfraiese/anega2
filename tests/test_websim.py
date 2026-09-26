@@ -92,7 +92,7 @@ def _proyecto_sintetico(tmp_path, monkeypatch) -> Project:
     rogd = p.data_proc / "rog"; (rogd / "ens").mkdir(parents=True, exist_ok=True)
     h_cm = np.zeros((2, 4, 4), np.uint8); h_cm[1] = 12
     np.savez_compressed(rogd / "P100_24h_frames.npz", h_cm=h_cm, t_h=np.arange(2), lluvia_acum_mm=np.array([0.0, 100.0]))
-    (rogd / "P100_24h_meta.json").write_text(json.dumps({"cortado": True}))
+    (rogd / "P100_24h_meta.json").write_text(json.dumps({"cortado": True, "hmax_lote_cm": [0, 12], "pct_lote_gt5cm": [0.0, 100.0], "pct_lote_gt20cm": [0.0, 0.0]}))
     np.savez_compressed(rogd / "ens" / "P100_24h__demB_frames.npz", h_cm=h_cm, t_h=np.arange(2), lluvia_acum_mm=np.array([0.0, 100.0]))
     (p.out / "rog_ensamble.json").write_text(json.dumps({"dems": ["demB"], "ids": ["P100_24h"], "primario": "demA"}))
     (p.out / "clima.json").write_text(json.dumps({"disponible": True}))
@@ -109,3 +109,23 @@ def test_run_cortado_y_ensamble(tmp_path, monkeypatch):
     assert esc["cortado"] is True
     assert esc["ensamble"] == ["demA", "demB"]
     assert (p.web / "sim" / "P100_24h.bin.gz").exists() and (p.web / "sim" / "P100_24h_cert.bin.gz").exists()
+
+
+def test_run_lote_desde_meta(tmp_path, monkeypatch):
+    """websim.run(): copia las series nativas del lote (hmax/pct5/pct20) desde <id>_meta.json a index.json."""
+    p = _proyecto_sintetico(tmp_path, monkeypatch)
+    websim.run(p)
+
+    idx = json.loads((p.web / "sim" / "index.json").read_text())
+    esc = idx["escenarios"]["P100_24h"]
+    assert esc["lote"] == {"hmax_cm": [0, 12], "pct5": [0.0, 100.0], "pct20": [0.0, 0.0]}
+
+
+def test_run_sin_lote_en_meta_lo_omite(tmp_path, monkeypatch):
+    """websim.run(): si el meta no tiene las series del lote (datos viejos), 'lote' se omite en index.json."""
+    p = _proyecto_sintetico(tmp_path, monkeypatch)
+    (p.data_proc / "rog" / "P100_24h_meta.json").write_text(json.dumps({"cortado": True}))
+    websim.run(p)
+
+    idx = json.loads((p.web / "sim" / "index.json").read_text())
+    assert "lote" not in idx["escenarios"]["P100_24h"]

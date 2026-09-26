@@ -28,6 +28,21 @@
     return { hmax, pct, horasConAgua, horaPico: hmax.indexOf(Math.max(...hmax)) };
   }
 
+  // estadísticas del lote en la grilla nativa (30 m), desde data/proc/rog/<id>_meta.json vía index.json
+  // ("lote": {hmax_cm, pct5, pct20}); evita el recorte de la reproyección a 3857 (ver ruling en el bug).
+  function loteSerieNativa(loteA, loteB, w, u) {
+    const key = u === 20 ? 'pct20' : 'pct5';
+    const n = loteA.hmax_cm.length;
+    const hmax = [], pct = [];
+    for (let t = 0; t < n; t++) {
+      const ha = loteA.hmax_cm[t], pa = loteA[key][t];
+      if (w === 0 || !loteB) { hmax.push(ha); pct.push(pa); }
+      else { hmax.push(ha + (loteB.hmax_cm[t] - ha) * w); pct.push(pa + (loteB[key][t] - pa) * w); }
+    }
+    const horasConAgua = hmax.filter(v => v > u).length;
+    return { hmax, pct, horasConAgua, horaPico: hmax.indexOf(Math.max(...hmax)) };
+  }
+
   const nivelCerteza = c => (c >= 70 ? 'probable' : c >= 30 ? 'posible' : c >= 5 ? 'poco' : null);
 
   function retornoAnios(mm, g) {
@@ -88,6 +103,6 @@
     return evento ? { evento, filas: rs.filter(r => r.evento === evento) } : null;
   }
 
-  const Lib = { fmt, pickNeighbors, lerp, loteSerie, nivelCerteza, retornoAnios, durTexto, frase, matchRadar };
+  const Lib = { fmt, pickNeighbors, lerp, loteSerie, loteSerieNativa, nivelCerteza, retornoAnios, durTexto, frase, matchRadar };
   if (typeof module !== 'undefined' && module.exports) module.exports = Lib; else root.Lib = Lib;
 })(this);
