@@ -13,6 +13,8 @@ Todas las fuentes son de acceso abierto y **ninguna requiere cuenta**. Cada proy
 | **Sentinel-1 RTC** (GRD IW, gamma0 corregido por terreno, 10 m) | Detección de agua por evento de lluvia (filtro Lee + umbral) y referencia seca. | STAC `https://planetarycomputer.microsoft.com/api/stac/v1`, colección `sentinel-1-rtc`, token SAS anónimo | Datos Copernicus Sentinel: libres y abiertos. Procesamiento RTC: Microsoft Planetary Computer |
 | **OpenStreetMap** (cursos de agua) | Validación de la red de drenaje derivada de cada DEM y capa de referencia. | Overpass API `https://overpass-api.de/api/interpreter` | ODbL 1.0, © OpenStreetMap contributors |
 | **Esri World Imagery / Topo / Street Map** (tiles) | Sólo mapa base de la figura de ubicación y del visor. | `https://server.arcgisonline.com/ArcGIS/rest/services/` | Visualización con atribución (Esri, Maxar, Earthstar Geographics, HERE, Garmin, © OpenStreetMap contributors); no se redistribuyen tiles |
+| **ERA5** (vía Open-Meteo) | Lluvia histórica horaria (1940→hoy) en el centroide del lote: máximos anuales y período de retorno (Gumbel) por duración (3/24/72 h), y selección automática de tormentas para buscar en Sentinel-1. Rejilla de reanálisis, ~28 km. | `https://archive-api.open-meteo.com/v1/archive` (`hourly=precipitation`, `models=era5`), sin API key | Contiene información modificada del Copernicus Climate Change Service (2026); ni la Comisión Europea ni ECMWF son responsables del uso que se le dé. **CC BY 4.0**. Acceso vía Open-Meteo (ver atribución en https://open-meteo.com/en/license) |
+| **CHIRPS v2.0** (Climate Hazards Center, UCSB) | Lluvia histórica diaria (1981→hoy) en el píxel de 0,05° (~5 km) más cercano al lote, como segunda serie para el período de retorno; leída por ventana (`/vsicurl/`, un COG por día). Sin cobertura al sur de 50°S. | `https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/cogs/p05/<YYYY>/chirps-v2.0.<YYYY>.<MM>.<DD>.cog` | **Dominio público**. Cita: Funk, C. et al. (2015) "The climate hazards infrared precipitation with stations — a new environmental record for monitoring extremes". *Scientific Data* 2, 150066 |
 | **Landlab** (software) | Motor rain-on-grid (`OverlandFlow`, de Almeida et al. 2012). | https://landlab.readthedocs.io | MIT |
 | **WhiteboxTools** (software) | Hidrología de terreno (breach/fill, D8/D∞, HAND, TWI…). | https://www.whiteboxgeo.com | MIT |
 
@@ -20,6 +22,10 @@ Todas las fuentes son de acceso abierto y **ninguna requiere cuenta**. Cada proy
 
 - **ORA** (Oficina de Riesgo Agropecuario) y **CONAE**: al 2026-09 no exponen servicios OGC utilizables de anomalías hídricas o
   inundaciones a escala de lote (los productos VIIRS/ABI de CONAE tienen 375 m de píxel).
-- **Curvas IDF locales** (INA / Direcciones de Hidráulica): no se integran; los escenarios se reportan como "mm en 24 h"
-  sin período de retorno. Si tenés una IDF para tu zona, usala para asignar recurrencia a cada escenario.
+- **Curvas IDF locales** (INA / Direcciones de Hidráulica): no se integran. anega2 ya calcula un período de retorno
+  aproximado por Gumbel sobre ERA5 (28 km, subestima tormentas convectivas) y CHIRPS (5 km, diario) en el punto del
+  lote; es una aproximación regional, no una IDF calibrada localmente. Si tenés una IDF de tu zona, es más precisa:
+  usala para asignar recurrencia a cada escenario.
 - **Copernicus Data Space Ecosystem** (openEO): innecesario, Sentinel-1 RTC de Planetary Computer no requiere cuenta.
+- **ERA5-Land** (vía Open-Meteo): descartado; Open-Meteo devuelve precipitación nula para ese modelo (probado en el
+  ejemplo, 2026-09-25). Se usa ERA5 (atmosférico) en su lugar.

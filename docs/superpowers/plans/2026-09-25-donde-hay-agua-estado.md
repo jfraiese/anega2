@@ -22,16 +22,22 @@ rondas de corrección, observaciones menores diferidas) está en `.superpowers/s
 | 8 · websim (3857 + certeza) | ✅ revisada (1 corrección) | ..4d00eb3 |
 | 9 · veredicto.json | ✅ revisada (1 corrección) | ..3cfed0b |
 | 10 · paleta HAND + error | ✅ revisada (1 corrección) | ..bd5f5d3 |
-| 11 · ficha (paleta, banda, escenarios) | ⏸ **pendiente**: `anega2/ficha.py` tiene cambios del autor sin commitear | — |
+| 11 · ficha (paleta, banda, escenarios) | ✅ hecho (cambios del autor commiteados a pedido, más el crash de `sar.eventos: auto` y el filtro a `lluvia.ficha`) | 222fea0..ded7771 |
 | 12 · lib.js + tests node | ✅ revisada (1 corrección) | ..5631022 |
-| 13 · visor Resumen | ✅ código revisado · ⏳ **falta verificación en Chrome** (paso 7) | ..b828007 |
-| 14 · corrida completa, README, SOURCES | ⏳ **pendiente** (README bloqueado por cambios del autor) | — |
+| 13 · visor Resumen | ✅ revisada · **verificado en Chrome** (paso 7, lista completa del plan) | ..b828007 |
+| 14 · corrida completa, README, SOURCES | ✅ hecho | docs + ejemplo regenerado (este commit) |
 | Revisión final de la rama | ⏳ pendiente | — |
 
-Tests: `conda run -n giles-flood python -m pytest -q` (59 pasan) y `node --test webapp/test/*.test.js` (15 pasan).
+Tests: `conda run -n giles-flood python -m pytest -q` (65 pasan) y `node --test webapp/test/*.test.js` (21 pasan).
 Ojo: node 26 no acepta una carpeta en `node --test webapp/test/`; usar el glob.
 
-## Simulación del ejemplo (fase lluvia) — cortada a propósito
+## Simulación del ejemplo (fase lluvia) — completada
+
+**Actualización (task 14): la corrida se retomó y se completó** (68 corridas: 60 de la grilla + 8 del
+ensamble). Balance de agua |error| ≤ 0,52 % en todos los escenarios; `P100_24h` da 9,1 cm en el lote (8 % del
+lote con más de 5 cm); veredicto global MEDIO. `out/` y `web/` quedaron regenerados con el código final
+(incluye `out/clima*`, `out/rog_ensamble.json`, `out/veredicto.json` y `web/sim/`, ~30 MB en este ejemplo).
+El resto de esta sección es el registro histórico del corte original, para referencia.
 
 Se lanzó `anega2 run ejemplo-bajo-giles --fase lluvia --si` (68 corridas: 60 de la grilla + 8 del ensamble,
 16 en paralelo) y se cortó a las ~14:02 para seguir después. **Cada escenario terminado queda guardado**
@@ -62,29 +68,51 @@ y `ls projects/ejemplo-bajo-giles/data/proc/rog/ens/*_frames.npz | wc -l` (ensam
 
 ## Pasos que faltan, en orden
 
-1. Terminar la fase lluvia (comando de arriba). Verificar: 60 filas en `out/rog_stats.csv`; `P100_24h`
-   `hmax_lote_m` entre 0,06 y 0,10 (antes 0,08); `|balance.error_pct| < 1` en todos los `*_meta.json`;
-   ningún meta con `cortado: true` (si hay, subir `lluvia.presupuesto_min` y borrar ese escenario para recalcularlo).
-2. `anega2 run ejemplo-bajo-giles --fase sar informe kml web --si` (sar con la nueva regla de pasada 0-3 días;
-   el ejemplo mantiene su lista manual de eventos).
-3. Tarea 13, paso 7: abrir `anega2 serve` → `http://localhost:8000/webapp/?project=ejemplo-bajo-giles` en Chrome y
-   verificar la lista del plan, más lo que marcaron los revisores:
-   - el mapa Resumen muestra sólo el lote y el agua (sin capas técnicas);
-   - la barra de hora no tapa la leyenda ni la atribución (en móvil queda arriba a la izquierda);
-   - la línea de la hora en el gráfico cae en la hora correcta;
-   - los gráficos de la vista técnica se dimensionan bien al mostrarse por primera vez;
-   - ida y vuelta Resumen ↔ Técnico: checkboxes de Capas sincronizados;
-   - largo del chip de riesgo y espaciado de la tarjeta HAND;
-   - ▶ sin errores de consola (URLs de blob);
-   - tarjeta 2: los eventos 2015-08-10 y 2024-03-14 enlazan con su escena de radar;
-   - ya visto en la vista previa: sin errores de consola; detalle menor «2019….» (doble puntuación en «se superó N veces»).
-4. Tarea 11 (ficha) y la parte README de la tarea 14: requieren que el autor commitee o descarte sus cambios en
-   `anega2/ficha.py`, `README.md`, `README.en.md` y el PDF de la ficha.
-5. Tarea 14 (el `.gitignore` de `web/sim/` ya está): `SOURCES.md` (ERA5 vía Open-Meteo, CC BY 4.0;
-   CHIRPS v2.0, dominio público), README (fase clima, grilla, tiempos, vista Resumen, tests), captura `docs/visor.jpg`,
-   commit del ejemplo regenerado (incluye `out/clima*` y `out/rog_ensamble.json`).
-6. Revisión final de toda la rama (modelo más capaz) con las observaciones diferidas del registro, y cierre
-   (merge/PR a decidir por el autor).
+1. ✅ Fase lluvia terminada (68 corridas). `out/rog_stats.csv` tiene 60 filas; `P100_24h` `hmax_lote_m` = 0,091
+   (9,1 cm); `|balance.error_pct| < 1` en todos los `*_meta.json` (máximo observado 0,52 %); sin `cortado: true`.
+2. ✅ `anega2 run ejemplo-bajo-giles --fase sar informe kml web --si` corrido (sar con la nueva regla de pasada
+   0-3 días; el ejemplo mantiene su lista manual de eventos).
+3. ✅ Tarea 13, paso 7: verificado en Chrome contra `http://localhost:8000/webapp/?project=ejemplo-bajo-giles`,
+   la lista completa del plan (mapa Resumen sólo con lote y agua, barra de hora, línea de hora en el gráfico,
+   dimensionado de gráficos técnicos, sincronización de checkboxes Resumen ↔ Técnico, chip de riesgo, ▶ sin
+   errores de consola, tarjeta 2 con eventos enlazados a su escena de radar).
+4. ✅ Tarea 11 (ficha): cambios del autor en `anega2/ficha.py` commiteados (`222fea0`, `ded7771`), PDF del
+   ejemplo regenerado.
+5. ✅ Tarea 14: `SOURCES.md` (ERA5 vía Open-Meteo, CC BY 4.0; CHIRPS v2.0, dominio público, Funk et al. 2015),
+   README.md/README.en.md (fase `clima`, grilla de 60 escenarios + ensamble, certeza, tiempos, vista Resumen,
+   instalación/tests, limitaciones), captura nueva `docs/visor.jpg`, commit del ejemplo regenerado (incluye
+   `out/clima*`, `out/rog_ensamble.json`, `out/veredicto.json`, `web/veredicto.json` y `web/sim/`).
+6. ⏳ Pendiente: revisión final de toda la rama (modelo más capaz) con las observaciones diferidas del
+   registro, y cierre (merge/PR a decidir por el autor).
+
+## Correcciones posteriores al checkpoint (entre el corte y la tarea 14)
+
+Encontradas y corregidas durante la corrida completa y su verificación, antes del commit final:
+
+- **Piso de infiltración del balance** (`802ce9c`, posterior a R8): con `steep_slopes=True`, `OverlandFlow`
+  resetea al final de cada paso toda lámina por debajo de `h_init` (1e-5 m) a `h_init·1e-3` (1e-8 m), pero
+  Green-Ampt sólo infiltraba hasta `H_FILM` (1e-5 m); la lluvia liviana y prolongada nunca llegaba a
+  infiltrarse antes de ese piso y Landlab la borraba sin contarla — hasta 48 % de error de balance en el
+  dominio real (peor cuanto más liviana y larga la lluvia), encima del bug de R8 (salida por bordes no
+  medida). Se agregó `H_PISO = H_FILM·1e-3` e infiltra hasta ahí. Con ambos fixes, el error de balance quedó
+  en ≤ 0,52 % en las 68 corridas del ejemplo; las láminas (`hmax`, `dur5cm`) ya eran correctas antes, sólo
+  `escurrido_pct`/`almacenado_final_pct` no eran confiables.
+- **Plausibilidad del umbral de Otsu en SAR** (`7eab5be`): Otsu podía aceptar un umbral ≤ −13 dB que igual
+  marcaba una fracción grande del buffer hidrológico como agua (caso real: 2016-12-16, Otsu = −13,1 dB, 55 % del
+  buffer — suelo húmedo/cultivos, no agua abierta). Se agregó un chequeo (`FRAC_AGUA_MAX = 0.20`): si el umbral
+  de Otsu marca más del 20 % del buffer, se cae al umbral fijo (−18 dB).
+- **Serie nativa del lote en el visor** (`675ce79`): la vista Resumen recalculaba el máximo/porcentaje del lote
+  a partir de los cuadros ya reproyectados a EPSG:3857 (vecino más cercano), lo que podía perder la celda de
+  borde con el pico nativo (bug real: P100_24h daba 3 cm en el visor vs. 9 cm en el informe). `websim.py` ahora
+  copia `hmax_lote_cm`/`pct_lote_gt5cm`/`pct_lote_gt20cm` del meta nativo de `rog` a `index.json`, y el visor los
+  usa para la frase, la curva y la hora pico (con fallback a la serie recalculada para `index.json` viejos).
+- **Radar emparejado por `fecha_evento`** (`81ac5bd`): `sar.run` ahora escribe `fecha_evento` en toda fila de
+  evento (con o sin escena: pre, post, sin pasada a tiempo, sin cobertura), y `Lib.matchRadar` la usa de
+  respaldo cuando el id no matchea. `resumen.js` distingue "no hubo pasadas cerca de esa fecha" (sin cobertura)
+  de "no pasó a tiempo" (sin pasada), y sólo dice "no se analizó con radar" cuando no hay ninguna fila.
+- **Frase de certeza sin sustento** (mismo commit `81ac5bd`): se quitó `soloUnModelo` de `Lib.frase`/`resumen.js`
+  — el visor no tiene cómo saber cuántos de los 3 DEM ven agua en un píxel (la certeza combinada es vecindad ×
+  promedio de DEMs), así que esa frase de incertidumbre no estaba sustentada por los datos disponibles.
 
 ## Decisiones tomadas durante la ejecución (a revisar por el autor)
 
