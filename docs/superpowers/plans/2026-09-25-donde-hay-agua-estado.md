@@ -26,9 +26,9 @@ rondas de corrección, observaciones menores diferidas) está en `.superpowers/s
 | 12 · lib.js + tests node | ✅ revisada (1 corrección) | ..5631022 |
 | 13 · visor Resumen | ✅ revisada · **verificado en Chrome** (paso 7, lista completa del plan) | ..b828007 |
 | 14 · corrida completa, README, SOURCES | ✅ hecho | docs + ejemplo regenerado (este commit) |
-| Revisión final de la rama | ⏳ pendiente | — |
+| Revisión final de la rama | ✅ hecha; correcciones aplicadas (ver «Correcciones de la revisión final») | posteriores a d4ff06d |
 
-Tests: `conda run -n giles-flood python -m pytest -q` (65 pasan) y `node --test webapp/test/*.test.js` (21 pasan).
+Tests: `conda run -n giles-flood python -m pytest -q` (80 pasan) y `node --test webapp/test/*.test.js` (32 pasan).
 Ojo: node 26 no acepta una carpeta en `node --test webapp/test/`; usar el glob.
 
 ## Simulación del ejemplo (fase lluvia) — completada
@@ -36,7 +36,9 @@ Ojo: node 26 no acepta una carpeta en `node --test webapp/test/`; usar el glob.
 **Actualización (task 14): la corrida se retomó y se completó** (68 corridas: 60 de la grilla + 8 del
 ensamble). Balance de agua |error| ≤ 0,52 % en todos los escenarios; `P100_24h` da 9,1 cm en el lote (8 % del
 lote con más de 5 cm); veredicto global MEDIO. `out/` y `web/` quedaron regenerados con el código final
-(incluye `out/clima*`, `out/rog_ensamble.json`, `out/veredicto.json` y `web/sim/`, ~30 MB en este ejemplo).
+(incluye `out/clima*`, `out/rog_ensamble.json` y `out/veredicto.json`). **`web/sim/` (~30 MB) está ignorado por git**: después
+de clonar, la vista Resumen necesita `anega2 run ejemplo-bajo-giles --fase lluvia web` (la fase lluvia recalcula las 68
+corridas si no está `data/proc/rog`).
 El resto de esta sección es el registro histórico del corte original, para referencia.
 
 Se lanzó `anega2 run ejemplo-bajo-giles --fase lluvia --si` (68 corridas: 60 de la grilla + 8 del ensamble,
@@ -81,7 +83,8 @@ y `ls projects/ejemplo-bajo-giles/data/proc/rog/ens/*_frames.npz | wc -l` (ensam
 5. ✅ Tarea 14: `SOURCES.md` (ERA5 vía Open-Meteo, CC BY 4.0; CHIRPS v2.0, dominio público, Funk et al. 2015),
    README.md/README.en.md (fase `clima`, grilla de 60 escenarios + ensamble, certeza, tiempos, vista Resumen,
    instalación/tests, limitaciones), captura nueva `docs/visor.jpg`, commit del ejemplo regenerado (incluye
-   `out/clima*`, `out/rog_ensamble.json`, `out/veredicto.json`, `web/veredicto.json` y `web/sim/`).
+   `out/clima*`, `out/rog_ensamble.json`, `out/veredicto.json` y `web/veredicto.json`; **no** `web/sim/`, que está ignorado por
+   git y se regenera con `anega2 run ejemplo-bajo-giles --fase lluvia web`).
 6. ⏳ Pendiente: revisión final de toda la rama (modelo más capaz) con las observaciones diferidas del
    registro, y cierre (merge/PR a decidir por el autor).
 
@@ -113,6 +116,27 @@ Encontradas y corregidas durante la corrida completa y su verificación, antes d
 - **Frase de certeza sin sustento** (mismo commit `81ac5bd`): se quitó `soloUnModelo` de `Lib.frase`/`resumen.js`
   — el visor no tiene cómo saber cuántos de los 3 DEM ven agua en un píxel (la certeza combinada es vecindad ×
   promedio de DEMs), así que esa frase de incertidumbre no estaba sustentada por los datos disponibles.
+
+## Correcciones de la revisión final
+
+- Frase de frecuencia del visor acotada: por encima del máximo histórico de esa duración dice «Más de lo que llovió en
+  cualquier chaparrón de 3 h / día / temporal de 3 días desde <año>»; si T > 100 años, «más rara que una vez cada 100
+  años»; informe y ficha usan el mismo tope («más de 100»).
+- Caché de escenarios con huella (`huella` en `<id>_meta.json`: escenario, parámetros, DEM, lote, `VERSION_SIM`): si
+  cambian los parámetros se recalcula; las corridas sin huella (anteriores) se reusan con un aviso.
+- Deslizador de lluvia por combinación (duración, suelo): rango y paso desde los escenarios calculados (formato viejo:
+  salta entre valores); pastillas sin escenarios deshabilitadas.
+- Salidas de escenarios que ya no se configuran se borran de `out/` y de `web/` (p. ej. `P060_2h` del ejemplo).
+- JSON estricto en `stats.json`/`layers.json`/`index.json` (NaN → null); aviso si falta `out/veredicto.json`; ERA5
+  retoma desde el último dato válido; sin eventos SAR se borra `sar_stats` viejo.
+
+## Pendiente conocido
+
+- **I3 · pico por paso vs. pico horario**: en escenarios fuertes con suelo saturado, el máximo por paso de integración
+  que guardan `hmax_dom.tif`/`rog_stats` supera en algunas celdas al máximo de los cuadros horarios hasta ~1,3 m
+  (probable oscilación numérica del esquema de de Almeida en celdas de pozo). Consecuencia: el informe y la ficha pueden
+  mostrar picos mayores que el visor en esas celdas. Las reglas del veredicto usan P100/P150 24 h con suelo normal,
+  donde la diferencia es ≤ 8 cm. A investigar aparte (¿filtrar el máximo por paso, o usar el máximo horario en todo?).
 
 ## Decisiones tomadas durante la ejecución (a revisar por el autor)
 
