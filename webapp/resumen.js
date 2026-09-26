@@ -55,7 +55,7 @@ const Resumen = (() => {
     const mx = clima().disponible ? ((clima().maximos || {}).era5 || {})[String(R.dur)] : null;
     const maxH = mx && mx.length ? Math.max(...mx.map(r => r[1])) : null;
     $('#r-frase').textContent = Lib.frase({ P: R.P, dur: R.dur, hmaxCm: serie.hmax[serie.horaPico], pct: serie.pct[serie.horaPico], horasConAgua: serie.horasConAgua,
-      nivel: Lib.nivelCerteza(med), certezaSoloVecindad: ens.length < 2, soloUnModelo: ens.length >= 3 && med < 34,
+      nivel: Lib.nivelCerteza(med), certezaSoloVecindad: ens.length < 2,
       Tera5: ge ? Lib.retornoAnios(R.P, ge) : NaN, Tchirps: gc ? Lib.retornoAnios(R.P, gc) : null, maxHistorico: maxH, desde: clima().fuentes?.era5?.desde?.slice(0, 4) });
   }
   const horaActual = { id: 'horaActual', afterDraw(c) {
@@ -109,6 +109,7 @@ const Resumen = (() => {
   function radar(ev, m) {
     if (!m) return ev.fecha < '2014-10-03' ? 'No había radar Sentinel-1 en esa fecha.' : 'Esa fecha no se analizó con radar.';
     const filas = m.filas;
+    if (filas.every(r => r.escena === 'SIN COBERTURA')) return 'No hubo pasadas del radar cerca de esa fecha.';
     if (filas.some(r => r.escena === 'SIN PASADA A TIEMPO')) return 'El radar no pasó a tiempo: no se puede saber si hubo agua.';
     const post = filas.find(r => r.momento === 'post'); if (!post) return 'No hay escena del radar después de la tormenta.';
     const d = post.dias_desde_evento, pct = post.pct_agua_lote;

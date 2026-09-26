@@ -76,9 +76,9 @@ test('frase fuera de registro y fuentes que difieren', () => {
   assert.match(Lib.frase({ P: 150, dur: 24, hmaxCm: 20, pct: 50, horasConAgua: 8, nivel: 'probable', Tera5: 10, Tchirps: 30 }),
     /pasa cada 10 a 30 años según la fuente\.$/);
 });
-test('frase con un solo modelo', () => {
-  assert.match(Lib.frase({ P: 100, dur: 24, hmaxCm: 8, pct: 10, horasConAgua: 2, nivel: 'poco', soloUnModelo: true, Tera5: 5 }),
-    /\(incierto: sólo 1 de 3 modelos de terreno\)/);
+test('frase con nivel poco', () => {
+  assert.match(Lib.frase({ P: 100, dur: 24, hmaxCm: 8, pct: 10, horasConAgua: 2, nivel: 'poco', Tera5: 5 }),
+    /\(poco probable\)/);
 });
 
 const SAR = [
@@ -86,6 +86,7 @@ const SAR = [
   { evento: '2015-08_agosto2015', escena: 'S1A_pre', fecha: '2015-08-06', momento: 'pre', dias_desde_evento: -4 },
   { evento: '2015-08_agosto2015', escena: 'S1A_post', fecha: '2015-08-18', momento: 'post', dias_desde_evento: 8, pct_agua_lote: 3 },
   { evento: '2016-04_abril2016', escena: 'SIN PASADA A TIEMPO', fecha: null, momento: 'post' },
+  { evento: '2017-02_febrero2017', escena: 'SIN COBERTURA', fecha: null, fecha_evento: '2017-02-10' },
 ];
 test('matchRadar por id', () => {
   const m = Lib.matchRadar({ id: '2016-04_abril2016', fecha: '2016-04-02' }, SAR);
@@ -103,4 +104,14 @@ test('matchRadar no empareja a más de 3 días', () => {
 test('matchRadar: fila SIN PASADA sin fecha sólo por id', () => {
   assert.strictEqual(Lib.matchRadar({ id: '2016-04-01_era5', fecha: '2016-04-01' }, SAR), null);
   assert.strictEqual(Lib.matchRadar({ id: 'y' }, []), null);
+});
+test('matchRadar por fecha_evento: fila SIN COBERTURA sin fecha de escena', () => {
+  const m = Lib.matchRadar({ id: 'x', fecha: '2017-02-12' }, SAR);
+  assert.strictEqual(m.evento, '2017-02_febrero2017');
+  assert.strictEqual(m.filas.length, 1);
+  assert.strictEqual(m.filas[0].escena, 'SIN COBERTURA');
+});
+test('matchRadar por fecha_evento: límite de ±3 días', () => {
+  assert.strictEqual(Lib.matchRadar({ id: 'y', fecha: '2017-02-13' }, SAR).evento, '2017-02_febrero2017');
+  assert.strictEqual(Lib.matchRadar({ id: 'z', fecha: '2017-02-14' }, SAR), null);
 });

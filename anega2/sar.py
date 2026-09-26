@@ -205,14 +205,15 @@ def run(p: Project) -> dict:
     osm = gpd.read_file(osm_path) if osm_path.exists() else None
     ext_geom = aoi["aoi"].buffer(2 * p.aoi_m)
     for key, ev, it, date, tag in plan:
+        d = pd.Timestamp(ev["fecha"])
         if it is None:
             if tag == "sin_post":
                 print(f"[{key}] sin pasada de Sentinel-1 dentro de los {post_max} días posteriores")
                 rows.append(dict(evento=key, descr=ev.get("descr", ""), escena="SIN PASADA A TIEMPO", fecha=None, momento="post",
+                                 fecha_evento=str(d.date()),
                                  nota=f"sin pasada en 0-{post_max} días: no se puede saber si hubo agua")); continue
             print(f"[{key}] sin escenas entre −{pre_max} y +{post_max} días de {ev['fecha']}")
-            rows.append(dict(evento=key, descr=ev.get("descr", ""), escena="SIN COBERTURA", fecha=None)); continue
-        d = pd.Timestamp(ev["fecha"])
+            rows.append(dict(evento=key, descr=ev.get("descr", ""), escena="SIN COBERTURA", fecha=None, fecha_evento=str(d.date()))); continue
         print(f"[{key}] {it.id} ({date}, {tag}, {it.properties.get('sat:orbit_state')})")
         db, tr = to_work_grid(fetch_vv(it, bbox, RAW), PROC / f"{it.id}_VV_db.tif", crs)
         db = align(db, tr, ref_tr, shape, crs) if (db.shape != shape or tr != ref_tr) else db
@@ -221,6 +222,7 @@ def run(p: Project) -> dict:
         new = water & ~ref_water
         diff = db - ref_db
         rows.append(dict(evento=key, descr=ev.get("descr", ""), escena=it.id, fecha=str(date), momento=tag,
+                         fecha_evento=str(d.date()),
                          dias_desde_evento=(date - d.date()).days, orbita=it.properties.get("sat:orbit_state"),
                          umbral_dB=t, nota=note,
                          pct_agua_10km=100 * water.sum() / b10.sum(), pct_agua_500m=100 * (water & b500).sum() / b500.sum(),

@@ -79,15 +79,16 @@
     let cuerpo;
     if (o.hmaxCm < 5) cuerpo = 'el lote no junta agua (menos de 5 cm).';
     else {
-      const cert = o.soloUnModelo ? ' (incierto: sólo 1 de 3 modelos de terreno)' : o.nivel ? ` (${NIVEL_TXT[o.nivel]}${o.certezaSoloVecindad ? ', certeza sólo por vecindad' : ''})` : '';
+      const cert = o.nivel ? ` (${NIVEL_TXT[o.nivel]}${o.certezaSoloVecindad ? ', certeza sólo por vecindad' : ''})` : '';
       cuerpo = `hasta ${fmt(o.hmaxCm)} cm en ${fraccion(o.pct)}${cert}, queda con agua ~${fmt(o.horasConAgua)} h.`;
     }
     const fr = frecuencia(o);
     return cab + cuerpo + (fr ? ' ' + fr : '');
   }
 
-  // evento de lluvia → filas SAR del mismo evento: primero por id; si no, por fecha de tormenta
-  // (fecha de la escena − dias_desde_evento) a ±3 días de ev.fecha. Filas sin fecha (SIN PASADA) sólo por id.
+  // evento de lluvia → filas SAR del mismo evento: primero por id; si no, por fecha_evento (fecha configurada
+  // del evento que buscó el radar) o, si falta, por fecha de tormenta (fecha de la escena − dias_desde_evento),
+  // a ±3 días de ev.fecha. fecha_evento se prefiere porque está en todas las filas, incluidas SIN COBERTURA/SIN PASADA.
   const dia = f => Date.parse(String(f).slice(0, 10) + 'T00:00:00Z') / 864e5;
   function matchRadar(ev, rows) {
     const rs = (rows || []).filter(r => r && r.evento && r.evento !== 'referencia_seca');
@@ -95,8 +96,10 @@
     if (!evento && ev.fecha) {
       let mejor = Infinity;
       for (const r of rs) {
-        if (!r.fecha || typeof r.dias_desde_evento !== 'number' || !Number.isFinite(r.dias_desde_evento)) continue;
-        const dd = Math.abs(dia(r.fecha) - r.dias_desde_evento - dia(ev.fecha));
+        let dd;
+        if (r.fecha_evento) dd = Math.abs(dia(r.fecha_evento) - dia(ev.fecha));
+        else if (r.fecha && typeof r.dias_desde_evento === 'number' && Number.isFinite(r.dias_desde_evento)) dd = Math.abs(dia(r.fecha) - r.dias_desde_evento - dia(ev.fecha));
+        else continue;
         if (dd <= 3 && dd < mejor) { mejor = dd; evento = r.evento; }
       }
     }
