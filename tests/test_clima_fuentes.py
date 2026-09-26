@@ -39,6 +39,22 @@ def test_era5_pide_solo_lo_faltante(tmp_path):
     assert pd.read_csv(cache, index_col=0, parse_dates=True).shape[0] == len(s)
 
 
+
+def test_era5_retoma_desde_el_ultimo_dato_valido(tmp_path):
+    """Si la cola de la caché es NaN (ERA5 todavía sin publicar esas horas), se re-pide desde el último dato válido."""
+    cache = tmp_path / "era5.csv"
+    t = pd.date_range("2020-01-01 00:00", "2020-01-03 23:00", freq="h")
+    v = np.where(t < pd.Timestamp("2020-01-02"), 1.0, np.nan)
+    pd.Series(v, index=t, name="mm").rename_axis("t").to_csv(cache)
+    pedidos = []
+    def get(url, params, timeout):
+        pedidos.append((params["start_date"], params["end_date"]))
+        tt = pd.date_range(params["start_date"], f"{params['end_date']} 23:00", freq="h")
+        return _Resp({"hourly": {"time": [x.strftime("%Y-%m-%dT%H:%M") for x in tt], "precipitation": [0.0] * len(tt)}})
+    s = clima.era5_horaria(-34.4, -59.42, cache, hasta=date(2020, 1, 3), get=get)
+    assert pedidos == [("2020-01-01", "2020-01-03")]
+    assert s.notna().all() and s.index.max() == pd.Timestamp("2020-01-03 23:00")
+
 def test_era5_sin_red_devuelve_cache(tmp_path, capsys):
     cache = tmp_path / "era5.csv"
     def get(url, params, timeout): raise ConnectionError("sin red")

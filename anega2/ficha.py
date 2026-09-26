@@ -32,7 +32,7 @@ from . import __version__  # noqa: E402
 from .common import read_window  # noqa: E402
 from .paletas import HAND_CLASES, hand_incertidumbre  # noqa: E402
 from .project import Project  # noqa: E402
-from .report import eventos_analizados, f as fnum  # noqa: E402
+from .report import eventos_analizados, f as fnum, frecuencia_100mm  # noqa: E402
 from .rog import ficha_ids  # noqa: E402
 
 A4 = (11.69, 8.27)                     # A4 apaisado, pulgadas
@@ -486,20 +486,33 @@ def _lam_lluvia(ctx: _Ctx, n: int):
     cap = ("Simulación 2D (Landlab OverlandFlow) de la lluvia cayendo sobre el terreno, con infiltración. Muestra dónde se acumula agua y cuánto; no incluye la crecida "
            f"que puede venir por el drenaje desde fuera del dominio de ±{ctx.p.buffers.get('lluvia_m', 5000)/1000:g} km. Píxeles de 30 m: no ve zanjas ni cunetas. "
            f"El lote ocupa {ctx.n_pix} píxeles, así que cada píxel con agua es un {fnum(100/ctx.n_pix, 0)} % del lote. "
-           "Sin período de retorno (no hay curva IDF local): 100 mm en 24 h es una tormenta fuerte, 200 mm un evento extremo. "
+           f"{_frecuencia(ctx.p)} "
            "'Saturado' repite la lluvia con el suelo ya lleno de agua (napa alta o lluvias previas).")
     fig.text(0.27, 0.07, _wrap(cap, 132), fontsize=8.4, va="bottom", linespacing=1.35, bbox=dict(fc="#f6f7f9", ec="#d0d3d8", boxstyle="round,pad=0.5"))
     return fig, "06_lluvias_simuladas.png"
 
 
+def _frecuencia(p) -> str:
+    """Frecuencia de 100 mm en 24 h desde out/clima.json (fase clima), con el mismo tope que el informe."""
+    cj = p.out / "clima.json"
+    fr = frecuencia_100mm(json.load(open(cj))) if cj.exists() else None
+    return f"Frecuencia: {fr}." if fr else "Sin datos de frecuencia de lluvias."
+
+
 def _sat_numbers(ctx: _Ctx):
     lote_occ = float(ctx.jrc.iloc[0]["occ>0 %"]) if ctx.jrc is not None else float("nan")
-    n_s1, s1_max, sin_cob = 0, float("nan"), 0
+    n_s1, s1_max, sin_cob, sin_pasada = 0, float("nan"), 0, 0
     if ctx.sar is not None:
         ev = ctx.sar[ctx.sar.evento != "referencia_seca"]
         n_s1 = int(ev.pct_agua_lote.notna().sum()); sin_cob = int((ev.escena == "SIN COBERTURA").sum())
+        sin_pasada = int((ev.escena == "SIN PASADA A TIEMPO").sum())
         s1_max = float(ev.pct_agua_lote.max()) if n_s1 else float("nan")
-    return lote_occ, n_s1, s1_max, sin_cob
+    return lote_occ, n_s1, s1_max, sin_cob, sin_pasada
+
+
+def _sin_radar_txt(sin_cob: int, sin_pasada: int) -> str:
+    return ", ".join(([f"{sin_cob} evento{'s' if sin_cob > 1 else ''} sin cobertura radar"] if sin_cob else [])
+                     + ([f"{sin_pasada} sin pasada a tiempo"] if sin_pasada else []))
 
 
 def _lam_satelite(ctx: _Ctx, n: int):
@@ -513,11 +526,11 @@ def _lam_satelite(ctx: _Ctx, n: int):
         h_.set_label(lab)
     hs += _streams(ax, ctx); hs.append(_lot_handle())
     _frame(ax, ctx, ctx.ext)
-    lote_occ, n_s1, s1_max, sin_cob = _sat_numbers(ctx)
+    lote_occ, n_s1, s1_max, sin_cob, sin_pasada = _sat_numbers(ctx); sin_radar = _sin_radar_txt(sin_cob, sin_pasada)
     cap = (f"Landsat (30 m, 1984-2021): {'nunca vio agua sobre el lote' if lote_occ == 0 else f'vio agua en el {fnum(lote_occ, 1)} % del lote'}. "
            f"Radar Sentinel-1 (10 m): {n_s1} escenas alrededor de los eventos de lluvia de {_lst(ctx.years)}, "
            f"{'ninguna con agua abierta sobre el lote' if s1_max == 0 else f'hasta el {fnum(s1_max, 0)} % del lote con agua'}"
-           + (f"; {sin_cob} evento sin cobertura radar" if sin_cob else "") + ". "
+           + (f"; {sin_radar}" if sin_radar else "") + ". "
            "Los satélites no ven agua bajo árboles ni la que dura menos que el intervalo entre pasadas (6-12 días), y el radar confunde suelo desnudo mojado con agua. "
            "Que no hayan visto agua no prueba que no se anegue: prueba que no hubo agua abierta durante días.")
     _side(fig, hs, cap, "Landsat (JRC Global Surface Water)")
@@ -558,9 +571,9 @@ def _resumen(ctx: _Ctx, dr, prof):
     cuenca = float(k.get("cuenca_todo_el_lote_ha", 0) or 0)
     y = _row(fig, y, "Agua propia y de vecinos", f"{dep} · cuenca aportante {ctx.kf('cuenca_celda_mas_baja_ha')} – {ctx.kf('cuenca_todo_el_lote_ha')} ha "
              f"({'prácticamente sólo recibe la lluvia que le cae' if cuenca < 5 else 'recibe escurrimiento de arriba'})")
-    lote_occ, n_s1, s1_max, sin_cob = _sat_numbers(ctx)
+    lote_occ, n_s1, s1_max, sin_cob, sin_pasada = _sat_numbers(ctx); sin_radar = _sin_radar_txt(sin_cob, sin_pasada)
     if ctx.jrc is not None and lote_occ == 0 and (s1_max == 0 or math.isnan(s1_max)):
-        sat = f"ninguna sobre el lote: Landsat 1984-2021 y {n_s1} escenas de radar Sentinel-1 alrededor de las lluvias de {_lst(ctx.years)}" + (f" ({sin_cob} evento sin cobertura)" if sin_cob else "")
+        sat = f"ninguna sobre el lote: Landsat 1984-2021 y {n_s1} escenas de radar Sentinel-1 alrededor de las lluvias de {_lst(ctx.years)}" + (f" ({sin_radar})" if sin_radar else "")
     else:
         sat = f"ver lámina {ctx.num.get('satelite', '—')}"
     y = _row(fig, y, "Agua vista por satélite", sat)

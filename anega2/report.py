@@ -41,6 +41,25 @@ def _num(v):
         return None
 
 
+T_MAX = 100   # más allá de 100 años, Gumbel ajustado con ~85 años de ERA5 (o ~45 de CHIRPS) no dice nada
+
+
+def anios_txt(T: float) -> str:
+    return f"más de {T_MAX}" if T > T_MAX else f(T, 0)
+
+
+def frecuencia_100mm(cl: dict | None) -> str | None:
+    """«100 mm en 24 h ≈ cada N años (ERA5; CHIRPS: M)», con tope de 100 años; None sin datos de clima."""
+    from .clima import gumbel_T
+    g = ((cl or {}).get("gumbel") or {}) if (cl or {}).get("disponible") else {}
+    t_e = gumbel_T(g["era5"]["24"], 100) if "24" in (g.get("era5") or {}) else float("nan")
+    if not math.isfinite(t_e) and t_e != float("inf"):
+        return None
+    g_c = (g.get("chirps") or {}).get("24"); t_c = gumbel_T(g_c, 100) if g_c else float("nan")
+    s = "100 mm en 24 h ≈ " + (f"más rara que una vez cada {T_MAX} años" if t_e > T_MAX else f"cada {anios_txt(t_e)} años")
+    return s + " (ERA5" + (f"; CHIRPS: {anios_txt(t_c)}" if not math.isnan(t_c) else "") + ")"
+
+
 def eventos_analizados(R: dict) -> list[str]:
     s = R.get("sar")
     if s is None or "evento" not in s:
@@ -277,13 +296,9 @@ def _veredicto(ev: dict, ind: dict, R: dict, p: Project) -> str:
     falt = ev["lluvia_local"]["faltan"] + ev["desborde"]["faltan"]
     if falt:
         s += "- **Indicadores sin datos** (fase pendiente): " + "; ".join(falt) + ".\n"
-    cl = R.get("clima") or {}
-    if cl.get("disponible") and cl["gumbel"].get("era5") and "24" in cl["gumbel"]["era5"]:
-        from .clima import gumbel_T
-        t_e = gumbel_T(cl["gumbel"]["era5"]["24"], 100)
-        g_c = (cl["gumbel"].get("chirps") or {}).get("24")
-        s += (f"- **Frecuencia**: 100 mm en 24 h ocurre en promedio cada {f(t_e, 0)} años según ERA5"
-              + (f" (cada {f(gumbel_T(g_c, 100), 0)} según CHIRPS)" if g_c else "") + ".\n")
+    fr = frecuencia_100mm(R.get("clima"))
+    if fr:
+        s += f"- **Frecuencia** (Gumbel sobre máximos anuales; tope de {T_MAX} años): {fr}.\n"
     s += ("- **Limitación principal**: la topografía disponible es de 30 m de píxel, con ruido vertical de décimas de metro y sin "
           "microrrelieve (zanjas, terraplenes, alcantarillas). A escala de lote la diferencia entre anegarse o no está en "
           "decenas de centímetros que el DEM no resuelve. **El veredicto es un diagnóstico regional que hay que confirmar en campo.**\n")
@@ -378,14 +393,14 @@ Figuras `30_sar_*.png`.
 Modelo 2D Landlab `OverlandFlow` sobre el DEM primario corregido ({prim}, 30 m), dominio de ±{p.buffers['lluvia_m']/1000:.0f} km con bordes
 abiertos, Manning n = {rp.get('mannings_n', p.cfg['lluvia']['manning'])}, infiltración Green-Ampt con Ks = {rp.get('Ks_mm_h', p.cfg['lluvia']['Ks_mm_h'])} mm/h
 (ψ = {rp.get('psi_m', p.cfg['lluvia']['psi_m'])} m, Δθ = {rp.get('dtheta', p.cfg['lluvia']['dtheta'])}) y sensibilidad con Ks = {p.cfg['lluvia']['Ks_sat_mm_h']} mm/h (suelo saturado / napa alta).
-Hietograma de bloque alterno con relaciones P(d)/P(24 h) genéricas: **sin período de retorno** (no hay IDF local).
+Hietograma de bloque alterno con relaciones P(d)/P(24 h) genéricas (no hay IDF local); la frecuencia de cada lluvia se estima aparte (fase clima, Gumbel sobre ERA5/CHIRPS).
 
 {rog_tab}
 **Escenario → efecto**
 
 {rog_eff}
 Advertencias: no incluye la crecida que viene de fuera del dominio; las celdas son de 30 × 30 m; celdas aisladas con láminas
-> 1 m suelen ser pozos residuales del DEM; el balance de masa cierra por residuo. Figuras `40_rog_*.png`; tabla `rog_stats.md`.
+> 1 m suelen ser pozos residuales del DEM; la salida por los bordes se mide por flujo en el borde (error de balance de cada corrida en `data/proc/rog/<id>_meta.json`). Figuras `40_rog_*.png`; tabla `rog_stats.md`.
 
 ## 4. Limitaciones
 
@@ -404,7 +419,7 @@ Advertencias: no incluye la crecida que viene de fuera del dominio; las celdas s
 Niveles: {' < '.join(NIVELES)}. Cada componente toma el nivel más alto que dispare alguna regla; el global es el máximo de los dos.
 
 {_reglas_md()}
-Eventos Sentinel-1 configurados: {', '.join(ev_ids)}. Fuentes y licencias: `SOURCES.md` del repositorio.
+Eventos Sentinel-1 analizados: {', '.join(ev_ids)}. Fuentes y licencias: `SOURCES.md` del repositorio.
 """
     et, frase = etiqueta(ev["global"])
     return md, dict(indicadores=ind, veredicto=ev, verdict_md=veredicto_md.strip(), field_md=campo_md.strip(),

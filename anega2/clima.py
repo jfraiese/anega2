@@ -56,6 +56,8 @@ def gumbel_mm(fit: dict, T: float) -> float:
 
 
 def gumbel_T(fit: dict, mm: float) -> float:
+    if not (fit and math.isfinite(fit.get("mu", math.nan)) and math.isfinite(fit.get("beta", math.nan)) and fit["beta"] > 0):
+        return float("nan")                                  # ajuste degenerado: sin frecuencia
     p_exc = 1 - math.exp(-math.exp(-(mm - fit["mu"]) / fit["beta"]))
     return float("inf") if p_exc <= 0 else float(1 / p_exc)
 
@@ -105,7 +107,8 @@ def _read_cache(path: Path) -> pd.Series:
 
 def era5_horaria(lat, lon, cache_csv: Path, hasta: date, get=requests.get) -> pd.Series:
     s = _read_cache(cache_csv)
-    ini = s.index.max().date() if len(s) else ERA5_DESDE
+    ult = s.last_valid_index() if len(s) else None          # una cola NaN (horas aún sin publicar) se vuelve a pedir
+    ini = ult.date() if ult is not None else ERA5_DESDE
     if hasta < ini:
         return s
     partes = [s[s.index < pd.Timestamp(ini)]] if len(s) else []
