@@ -18,7 +18,7 @@ from rasterio import features
 from rasterio.warp import Resampling, reproject, transform_bounds
 from scipy.ndimage import uniform_filter
 
-from .common import CRS_WGS84
+from .common import CRS_WGS84, json_limpio
 from .project import Project
 from .rog import load_dem_window, scenario_specs
 
@@ -111,7 +111,7 @@ def run(p: Project) -> dict:
         idx["escenarios"][s["id"]] = esc
     cl = p.out / "clima.json"
     idx["clima"] = json.load(open(cl)) if cl.exists() else {"disponible": False}
-    json.dump(idx, open(out / "index.json", "w"), ensure_ascii=False)
+    json.dump(json_limpio(idx), open(out / "index.json", "w"), ensure_ascii=False, allow_nan=False)
     mb = sum(q.stat().st_size for q in out.glob("*")) / 1e6
     print(f"  vista Resumen: {len(specs)} escenarios, grilla {g['cols']}×{g['rows']} (3857, {g['res_m']:.1f} m), {mb:.0f} MB en {out}")
     return dict(escenarios=len(specs), mb=mb)

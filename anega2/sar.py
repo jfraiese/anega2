@@ -134,6 +134,15 @@ def plan_escenas(fechas, fecha_evento, pre_max_d: int, post_max_d: int):
     return (max(pre) if pre else None, min(post) if post else None)
 
 
+def borrar_stats_viejas(out: Path) -> None:
+    """Sin eventos no hay tabla nueva: se borra la de una corrida anterior para que no parezca actual."""
+    viejas = [q for q in (out / "sar_stats.csv", out / "sar_stats.md") if q.exists()]
+    for q in viejas:
+        q.unlink()
+    if viejas:
+        print(f"  [aviso] se borró {', '.join(q.name for q in viejas)} de una corrida anterior (ya no hay eventos configurados)")
+
+
 def run(p: Project) -> dict:
     import geopandas as gpd
     import matplotlib
@@ -147,7 +156,7 @@ def run(p: Project) -> dict:
     from .clima import resolve_events
     events = {e["id"]: e for e in resolve_events(p)}
     if not events:
-        print("SAR: sin eventos para buscar; se omite la fase."); return {}
+        print("SAR: sin eventos para buscar; se omite la fase."); borrar_stats_viejas(p.out); return {}
     pre_max, post_max = int(cfg.get("pre_max_d", 12)), int(cfg.get("post_max_d", 3))
     dry = cfg["referencia_seca"]
     aoi_lab = f"{p.aoi_m:.0f} m"; hidro_lab = f"{p.hidro_m / 1000:.0f} km"

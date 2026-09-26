@@ -67,3 +67,13 @@ def test_resolve_events_auto_sin_clima(tmp_project, capsys):
     tmp_project.cfg["sar"]["eventos"] = "auto"
     assert clima.resolve_events(tmp_project) == []
     assert "correr la fase clima" in capsys.readouterr().out
+
+
+def test_borrar_sar_viejo(tmp_path, capsys):
+    for n in ["sar_stats.csv", "sar_stats.md", "jrc_stats.csv"]:
+        (tmp_path / n).write_text("x")
+    sar.borrar_stats_viejas(tmp_path)
+    assert sorted(q.name for q in tmp_path.iterdir()) == ["jrc_stats.csv"]
+    assert "[aviso]" in capsys.readouterr().out
+    sar.borrar_stats_viejas(tmp_path)                        # sin nada que borrar: no falla ni avisa
+    assert "[aviso]" not in capsys.readouterr().out

@@ -25,7 +25,7 @@ from PIL import Image
 from rasterio.warp import Resampling, calculate_default_transform, reproject, transform_bounds
 from rasterio.windows import from_bounds
 
-from .common import CRS_WGS84
+from .common import CRS_WGS84, json_limpio
 from .paletas import HAND_CLASES, hand_clase, hand_incertidumbre
 from .project import PROJECTS_DIR, Project
 from .rog import ficha_ids, scenario_specs
@@ -162,6 +162,25 @@ def update_index() -> list:
     return rows
 
 
+def _copiar_veredicto(out: Path, web: Path, B: Builder) -> dict:
+    """out/veredicto.json (fase informe) → web/veredicto.json; si falta, avisa y borra la copia vieja."""
+    if not (out / "veredicto.json").exists():
+        (web / "veredicto.json").unlink(missing_ok=True)
+        B.warn(f"falta out/veredicto.json: correr anega2 run {B.p.name} --fase informe"); return {}
+    shutil.copy(out / "veredicto.json", web / "veredicto.json")
+    return json.load(open(out / "veredicto.json"))
+
+
+def _limpiar_viejos(web: Path, out: Path) -> None:
+    """Antes de regenerar: borra capas de simulación (img/rog_*, geo/rog_v_*) y figuras que ya no están en out/,
+    así un escenario que dejó de configurarse no queda publicado."""
+    for q in [*(web / "img").glob("rog_*"), *(web / "geo").glob("rog_v_*")]:
+        q.unlink()
+    for q in (web / "figures").glob("*.png"):
+        if not (out / q.name).exists():
+            q.unlink()
+
+
 def _vista_resumen(p: Project, B: Builder) -> None:
     """Cuadros horarios 3857 + certeza (vista Resumen del visor). No debe abortar la fase web: un fallo
     (falta la fase lluvia, DEM incompatible, etc.) se registra como aviso y el resto de la fase sigue."""
@@ -181,7 +200,7 @@ def run(p: Project) -> dict:
     T = proc / "terrain" / primary if primary else None
     lote = aoi["lote"]; c = lote.centroid
     grilla_m = float(p.buffers.get("grilla_m", 2000)); ext3 = lote.buffer(3000).envelope; extg = lote.buffer(grilla_m).envelope
-    B = Builder(p)
+    B = Builder(p); _limpiar_viejos(web, out)
     if primary is None:
         B.warn("falta out/terrain_primary.json (correr la fase terreno); se generan sólo las capas de referencia")
 
@@ -310,7 +329,7 @@ def run(p: Project) -> dict:
     manifest = dict(nombre=p.name, titulo=p.titulo, crs=crs, aoi_m=aoi_m, hidro_m=hidro_m, res_m=res_m, primary=primary,
                     generado=_dt.datetime.now().isoformat(timespec="seconds"), center=[float(c84.y), float(c84.x)],
                     layers=B.layers, scenes=scenes, scenarios=scen)
-    json.dump(manifest, open(web / "layers.json", "w"), ensure_ascii=False, indent=0)
+    json.dump(json_limpio(manifest), open(web / "layers.json", "w"), ensure_ascii=False, indent=0, allow_nan=False)
 
     # --- grid.json (±grilla_m) ---
     grid = {}; tr = None; shape_ = None
@@ -343,11 +362,7 @@ def run(p: Project) -> dict:
     # --- stats.json ---
     ts_p = out / "terrain_stats.csv"
     ts = pd.read_csv(ts_p) if ts_p.exists() else pd.DataFrame(columns=["variable"])
-    vj = json.load(open(out / "veredicto.json")) if (out / "veredicto.json").exists() else {}
-    if vj:
-        shutil.copy(out / "veredicto.json", web / "veredicto.json")
-    else:
-        (web / "veredicto.json").unlink(missing_ok=True)
+    vj = _copiar_veredicto(out, web, B)
     prim_cols = [cc for cc in ts.columns if "(primario)" in cc]
     kv = dict(zip(ts["variable"], ts[prim_cols[0]])) if prim_cols else {}
     hand_min_lote = kv.get("hand_min_lote")
@@ -368,8 +383,7 @@ def run(p: Project) -> dict:
         jrc_extra=_jrc_extra(out / "jrc_stats.md"),
         hand_incert=hand_incert,
     )
-    json.dump(stats, open(web / "stats.json", "w"), ensure_ascii=False,
-              default=lambda o: None if (isinstance(o, float) and np.isnan(o)) else str(o))
+    json.dump(json_limpio(stats), open(web / "stats.json", "w"), ensure_ascii=False, allow_nan=False, default=str)
 
     # --- figuras ---
     caps = {"00_": "Ubicación", "10_terrain_": "Terreno · ", "20_jrc_": "JRC · ", "30_sar_": "Sentinel-1 · ", "40_rog_": "Rain-on-grid · "}

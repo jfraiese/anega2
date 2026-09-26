@@ -129,3 +129,39 @@ def test_run_sin_lote_en_meta_lo_omite(tmp_path, monkeypatch):
 
     idx = json.loads((p.web / "sim" / "index.json").read_text())
     assert "lote" not in idx["escenarios"]["P100_24h"]
+
+
+def _estricto(txt):
+    def no(c): raise ValueError(f"constante no JSON: {c}")
+    return json.loads(txt, parse_constant=no)
+
+
+def test_index_json_sin_nan_desnudo(tmp_path, monkeypatch):
+    p = _proyecto_sintetico(tmp_path, monkeypatch)
+    (p.out / "clima.json").write_text(json.dumps({"disponible": True, "gumbel": {"chirps": {"72": {"mu": float("nan"), "beta": float("inf")}}}}))
+    websim.run(p)
+    idx = _estricto((p.web / "sim" / "index.json").read_text())
+    assert idx["clima"]["gumbel"]["chirps"]["72"] == {"mu": None, "beta": None}
+
+
+def test_webdata_veredicto_faltante_avisa(tmp_path):
+    p = Project(name="x", cfg={}, dir=tmp_path); B = webdata.Builder(p)
+    (p.web / "veredicto.json").write_text("{}")             # uno viejo: se borra
+    assert webdata._copiar_veredicto(p.out, p.web, B) == {}
+    assert not (p.web / "veredicto.json").exists()
+    assert any("falta out/veredicto.json" in w and "--fase informe" in w for w in B.warnings)
+    (p.out / "veredicto.json").write_text(json.dumps({"etiqueta": "Riesgo bajo"}))
+    B2 = webdata.Builder(p)
+    assert webdata._copiar_veredicto(p.out, p.web, B2) == {"etiqueta": "Riesgo bajo"} and not B2.warnings
+    assert (p.web / "veredicto.json").exists()
+
+
+def test_webdata_limpia_capas_viejas_de_simulacion(tmp_path):
+    p = Project(name="x", cfg={}, dir=tmp_path); B = webdata.Builder(p)
+    for n in ["img/rog_h_P060_2h.png", "img/rog_d_P060_2h.png", "img/dem.png", "geo/rog_v_P060_2h.geojson", "geo/lote.geojson",
+              "figures/40_rog_P060_2h.png", "figures/10_terrain_dem.png"]:
+        (p.web / n).write_text("x")
+    (p.out / "10_terrain_dem.png").write_text("x")
+    webdata._limpiar_viejos(p.web, p.out)
+    quedan = sorted(str(q.relative_to(p.web)) for q in p.web.rglob("*") if q.is_file())
+    assert quedan == ["figures/10_terrain_dem.png", "geo/lote.geojson", "img/dem.png"]

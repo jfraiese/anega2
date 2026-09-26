@@ -15,6 +15,17 @@ CRS_WGS84 = "EPSG:4326"
 
 
 # --- Lote / AOI -----------------------------------------------------------
+def json_limpio(o):
+    """Copia apta para JSON estricto: NaN/±inf (float o numpy) → None, recursivo en dict/list/tuple."""
+    if isinstance(o, dict):
+        return {k: json_limpio(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [json_limpio(v) for v in o]
+    if isinstance(o, (float, np.floating)):
+        return float(o) if np.isfinite(o) else None
+    return o
+
+
 def read_lot_polygon(kml_path: Path, crs: str):
     """Devuelve (polígono shapely en crs, descripción). Usa el polígono más grande si hay varios."""
     g = gpd.read_file(kml_path)
