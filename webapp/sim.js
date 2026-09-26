@@ -28,8 +28,9 @@ const Sim = (() => {
     return p;
   }
   const idDe = (P, dur, suelo) => `P${String(P).padStart(3, '0')}_${dur}h${suelo === 'saturado' ? '_sat' : ''}`;
-  async function mezcla(P, dur, suelo) {
-    const { lo, hi, w } = Lib.pickNeighbors(idx.P_mm, P);
+  async function mezcla(P, dur, suelo, Ps) {           // Ps: valores de P calculados para (dur, suelo); si falta, los de todo el índice
+    const lista = Ps || idx.P_mm; if (!lista.length) throw new Error(`sin escenarios de ${dur} h con suelo ${suelo}`);
+    const { lo, hi, w } = Lib.pickNeighbors(lista, P);
     const [a, b] = await Promise.all([frames(idDe(lo, dur, suelo)), frames(idDe(hi, dur, suelo))]);
     // una simulación cortada puede tener menos horas que su vecina: se mezcla hasta la más corta
     const H = w === 0 ? a.h.length : Math.min(a.h.length, b.h.length);

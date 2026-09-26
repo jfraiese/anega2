@@ -115,3 +115,74 @@ test('matchRadar por fecha_evento: límite de ±3 días', () => {
   assert.strictEqual(Lib.matchRadar({ id: 'y', fecha: '2017-02-13' }, SAR).evento, '2017-02_febrero2017');
   assert.strictEqual(Lib.matchRadar({ id: 'z', fecha: '2017-02-14' }, SAR), null);
 });
+
+// --- C1: frecuencias acotadas y sensibles a la duración
+test('retornoAnios con beta <= 0 o no finita → NaN', () => {
+  assert.ok(Number.isNaN(Lib.retornoAnios(100, { mu: 50, beta: 0 })));
+  assert.ok(Number.isNaN(Lib.retornoAnios(100, { mu: 50, beta: -3 })));
+  assert.ok(Number.isNaN(Lib.retornoAnios(100, { mu: 50, beta: NaN })));
+  assert.ok(Number.isNaN(Lib.retornoAnios(100, { mu: NaN, beta: 10 })));
+});
+test('frase: sin frecuencia si T es NaN', () => {
+  assert.strictEqual(Lib.frase({ P: 100, dur: 24, hmaxCm: 3, pct: 0, horasConAgua: 0, Tera5: NaN }), 'Con 100 mm en un día de lluvia: el lote no junta agua (menos de 5 cm).');
+});
+test('frase: por encima del máximo histórico, según la duración', () => {
+  const b = { hmaxCm: 3, pct: 0, horasConAgua: 0, Tera5: 518548, desde: '1940' };
+  assert.match(Lib.frase({ ...b, P: 100, dur: 3, maxHistorico: 55 }), /Más de lo que llovió en cualquier chaparrón de 3 h desde 1940\.$/);
+  assert.match(Lib.frase({ ...b, P: 200, dur: 24, maxHistorico: 126 }), /Más de lo que llovió en cualquier día desde 1940\.$/);
+  assert.match(Lib.frase({ ...b, P: 300, dur: 72, maxHistorico: 180, desde: '1941' }), /Más de lo que llovió en cualquier temporal de 3 días desde 1941\.$/);
+});
+test('frase: T > 100 dentro del registro → tope de 100 años', () => {
+  const s = Lib.frase({ P: 120, dur: 24, hmaxCm: 3, pct: 0, horasConAgua: 0, Tera5: 1677, Tchirps: 9359, maxHistorico: 126, desde: '1940' });
+  assert.match(s, /Una lluvia así es más rara que una vez cada 100 años\.$/);
+  assert.doesNotMatch(s, /1677|9359/);
+});
+test('frase: rango ERA5-CHIRPS con valores acotados', () => {
+  assert.match(Lib.frase({ P: 110, dur: 24, hmaxCm: 3, pct: 0, horasConAgua: 0, Tera5: 20, Tchirps: 500 }), /pasa cada 20 a más de 100 años según la fuente\.$/);
+  assert.match(Lib.frase({ P: 110, dur: 24, hmaxCm: 3, pct: 0, horasConAgua: 0, Tera5: 60, Tchirps: 20 }), /pasa cada 20 a 60 años según la fuente\.$/);
+});
+test('frase: T con separador de miles vía fmt (P grande)', () => {
+  assert.match(Lib.frase({ P: 1200, dur: 72, hmaxCm: 3, pct: 0, horasConAgua: 0, Tera5: 5 }), /^Con 1\.200 mm/);
+});
+
+// --- I2: serie nativa con largos distintos
+test('loteSerieNativa acota al más corto y no devuelve horaPico −1', () => {
+  const a = { hmax_cm: [0, 10, 4, 7], pct5: [0, 40, 20, 30], pct20: [0, 0, 0, 0] };
+  const b = { hmax_cm: [0, 20], pct5: [0, 60], pct20: [0, 0] };
+  const s = Lib.loteSerieNativa(a, b, 0.5, 5);
+  assert.deepStrictEqual(s.hmax, [0, 15]); assert.deepStrictEqual(s.pct, [0, 50]);
+  assert.ok(s.hmax.every(Number.isFinite));
+  const v = Lib.loteSerieNativa({ hmax_cm: [], pct5: [], pct20: [] }, null, 0, 5);
+  assert.strictEqual(v.horaPico, 0); assert.strictEqual(v.horasConAgua, 0);
+});
+
+// --- I7: valores de P por combinación (formato viejo / grillas propias)
+const ESC = {
+  P060_2h: { P_mm: 60, dur_h: 2, suelo: 'normal' }, P100_24h: { P_mm: 100, dur_h: 24, suelo: 'normal' },
+  P150_24h: { P_mm: 150, dur_h: 24, suelo: 'normal' }, P200_24h: { P_mm: 200, dur_h: 24, suelo: 'normal' },
+  P150_24h_sat: { P_mm: 150, dur_h: 24, suelo: 'saturado' }, P080_24h: { P_mm: 80, dur_h: 24, suelo: 'saturado' },
+};
+test('pDisponibles filtra por duración y suelo, ordenado y sin repetir', () => {
+  assert.deepStrictEqual(Lib.pDisponibles(ESC, 24, 'normal'), [100, 150, 200]);
+  assert.deepStrictEqual(Lib.pDisponibles(ESC, 24, 'saturado'), [80, 150]);
+  assert.deepStrictEqual(Lib.pDisponibles(ESC, 72, 'normal'), []);
+  assert.deepStrictEqual(Lib.pDisponibles({}, 24, 'normal'), []);
+});
+test('grillaRegular', () => {
+  assert.strictEqual(Lib.grillaRegular([25, 50, 75, 100]), true);
+  assert.strictEqual(Lib.grillaRegular([80, 150]), true);
+  assert.strictEqual(Lib.grillaRegular([60, 100, 150, 200]), false);
+  assert.strictEqual(Lib.grillaRegular([100]), false);
+  assert.strictEqual(Lib.grillaRegular([]), false);
+});
+test('ajustarP: grilla regular → paso 5 dentro del rango', () => {
+  assert.strictEqual(Lib.ajustarP([25, 50, 75], 62), 60);
+  assert.strictEqual(Lib.ajustarP([25, 50, 75], 10), 25);
+  assert.strictEqual(Lib.ajustarP([25, 50, 75], 300), 75);
+});
+test('ajustarP: grilla irregular → al valor calculado más cercano', () => {
+  assert.strictEqual(Lib.ajustarP([60, 100, 150, 200], 115), 100);
+  assert.strictEqual(Lib.ajustarP([60, 100, 150, 200], 130), 150);
+  assert.strictEqual(Lib.ajustarP([60, 100, 150, 200], 20), 60);
+  assert.strictEqual(Lib.ajustarP([100], 250), 100);
+});

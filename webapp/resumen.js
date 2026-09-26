@@ -7,14 +7,22 @@ const Resumen = (() => {
   const UMB = [[5, 'más de 5 cm'], [20, 'más de 20 cm']];
   const visible = () => !$('#panel-resumen').hidden;
 
-  function pills(el, opts, cur, fn) {
-    el.innerHTML = ''; opts.forEach(([v, lab]) => { const b = document.createElement('button'); b.textContent = lab; b.className = v === cur ? 'on' : ''; b.onclick = () => fn(v); el.appendChild(b); });
+  function pills(el, opts, cur, fn, sinDatos = () => false) {
+    el.innerHTML = ''; opts.forEach(([v, lab]) => { const b = document.createElement('button'); b.textContent = lab; b.className = v === cur ? 'on' : ''; b.disabled = v !== cur && sinDatos(v); b.onclick = () => fn(v); el.appendChild(b); });
+  }
+  // valores de P calculados para la combinación actual: la grilla nueva es regular (paso 5, interpola);
+  // el formato viejo o una grilla propia puede no serlo (el deslizador salta entre los calculados)
+  const Ps = (dur = R.dur, suelo = R.suelo) => Lib.pDisponibles(Sim.idx.escenarios, dur, suelo);
+  function deslizador() {
+    const ps = Ps(), el = $('#r-mm'), reg = Lib.grillaRegular(ps);
+    if (ps.length) { el.min = ps[0]; el.max = ps[ps.length - 1]; el.step = reg ? 5 : 1; R.P = Lib.ajustarP(ps, R.P); }
+    el.disabled = ps.length < 2; el.value = R.P; $('#r-mm-v').textContent = `${R.P} mm`; $('#r-nota').hidden = reg || ps.length < 2;
   }
   const clima = () => Sim.idx.clima || { disponible: false };
   function gumbel(fuente) { const c = clima(); return c.disponible && c.gumbel && c.gumbel[fuente] ? c.gumbel[fuente][String(R.dur)] : null; }
   function pInicial() {                                  // tormenta de ~10 años (ERA5, 24 h), redondeada a 5 mm y acotada
-    const g = gumbel('era5'); if (!g) return 100;
-    const mm = g.mu - g.beta * Math.log(-Math.log(0.9)); return Math.min(250, Math.max(25, Math.round(mm / 5) * 5));
+    const g = gumbel('era5'); if (!g || !(g.beta > 0)) return 100;
+    const mm = g.mu - g.beta * Math.log(-Math.log(0.9)); return Math.round(mm / 5) * 5;   // deslizador() lo acota a lo calculado
   }
   // estadísticas del lote: serie nativa (30 m, desde <id>_meta.json vía index.json) si está disponible;
   // si no (datos generados antes de este cambio), se cae a la serie recalculada de los cuadros 3857.
@@ -22,7 +30,7 @@ const Resumen = (() => {
   async function actualizar(mantenerHora = true) {
     const mio = ++seq;                                   // el deslizador dispara muchas llamadas: sólo vale la última
     let m;
-    try { m = await Sim.mezcla(R.P, R.dur, R.suelo); } catch (e) {
+    try { m = await Sim.mezcla(R.P, R.dur, R.suelo, Ps()); } catch (e) {
       if (mio !== seq) return; console.error(e); $('#r-frase').textContent = `No hay simulación para esta combinación (${e.message}): corré anega2 run ${S.project} --fase lluvia web.`; return;
     }
     if (mio !== seq) return;
@@ -52,11 +60,11 @@ const Resumen = (() => {
     const med = loteCert.length ? loteCert[Math.floor(loteCert.length / 2)] : 0;
     const ens = R.mezcla.ensamble || [];
     const ge = gumbel('era5'), gc = gumbel('chirps');
-    const mx = clima().disponible ? ((clima().maximos || {}).era5 || {})[String(R.dur)] : null;
-    const maxH = mx && mx.length ? Math.max(...mx.map(r => r[1])) : null;
+    const mx = clima().disponible ? ((clima().maximos || {}).era5 || {})[String(R.dur)] : null;   // máximos anuales de ESTA duración
+    const maxH = mx && mx.length ? Math.max(...mx.map(r => r[1])) : null, desde = mx && mx.length ? mx[0][0] : null;
     $('#r-frase').textContent = Lib.frase({ P: R.P, dur: R.dur, hmaxCm: serie.hmax[serie.horaPico], pct: serie.pct[serie.horaPico], horasConAgua: serie.horasConAgua,
       nivel: Lib.nivelCerteza(med), certezaSoloVecindad: ens.length < 2,
-      Tera5: ge ? Lib.retornoAnios(R.P, ge) : NaN, Tchirps: gc ? Lib.retornoAnios(R.P, gc) : null, maxHistorico: maxH, desde: clima().fuentes?.era5?.desde?.slice(0, 4) });
+      Tera5: ge ? Lib.retornoAnios(R.P, ge) : NaN, Tchirps: gc ? Lib.retornoAnios(R.P, gc) : null, maxHistorico: maxH, desde });
   }
   const horaActual = { id: 'horaActual', afterDraw(c) {
     const x = c.scales.x.getPixelForValue(R.t), { top, bottom } = c.chartArea, g = c.ctx;
@@ -117,10 +125,10 @@ const Resumen = (() => {
   }
   async function detalleEvento(ev) {
     const mio = ++seqEv, box = $('#r-evento');
-    const P = Math.min(250, Math.max(25, Math.round(ev.era5_72 / 5) * 5));
+    const ps = Ps(72, 'normal'), P = Lib.ajustarP(ps, Math.round(ev.era5_72 / 5) * 5);
     let modelo;
     try {
-      const m = await Sim.mezcla(P, 72, 'normal'), s = serieLote(m, 5), hp = s.horaPico;
+      const m = await Sim.mezcla(P, 72, 'normal', ps), s = serieLote(m, 5), hp = s.horaPico;
       modelo = s.hmax[hp] < 5 ? 'el modelo no pone agua en el lote' : `el modelo pone hasta ${s.hmax[hp]} cm en el ${Lib.fmt(s.pct[hp])} % del lote`;
     } catch (e) { console.error(e); modelo = 'no hay simulación de 72 h para compararla'; }
     if (mio !== seqEv) return;                           // llegó tarde: ya se eligió otro evento
@@ -174,11 +182,16 @@ const Resumen = (() => {
     const durs = DUR.filter(([d]) => (idx.duraciones || []).includes(d)), suelos = SUELO.filter(([x]) => (idx.suelos || []).includes(x));
     if (durs.length && !durs.some(([d]) => d === R.dur)) R.dur = durs[0][0];
     if (suelos.length && !suelos.some(([x]) => x === R.suelo)) R.suelo = suelos[0][0];
-    R.P = pInicial(); $('#r-mm').value = R.P; $('#r-mm-v').textContent = `${R.P} mm`;
+    if (!Ps().length) { const d = durs.flatMap(([x]) => suelos.map(([y]) => [x, y])).find(([x, y]) => Ps(x, y).length); if (d) [R.dur, R.suelo] = d; }
+    R.P = pInicial();
     riesgo();
-    const redraw = () => { pills($('#r-dur'), durs, R.dur, x => { R.dur = x; redraw(); actualizar(false); }); pills($('#r-suelo'), suelos, R.suelo, x => { R.suelo = x; redraw(); actualizar(); }); pills($('#r-umbral'), UMB, R.u, x => { R.u = x; redraw(); actualizar(); }); };
+    const redraw = () => {
+      pills($('#r-dur'), durs, R.dur, x => { R.dur = x; redraw(); actualizar(false); }, x => !Ps(x, R.suelo).length);
+      pills($('#r-suelo'), suelos, R.suelo, x => { R.suelo = x; redraw(); actualizar(); }, x => !Ps(R.dur, x).length);
+      pills($('#r-umbral'), UMB, R.u, x => { R.u = x; redraw(); actualizar(); }); deslizador();
+    };
     redraw();
-    $('#r-mm').oninput = e => { R.P = +e.target.value; $('#r-mm-v').textContent = `${R.P} mm`; clearTimeout(debounce); debounce = setTimeout(() => actualizar(), 120); };
+    $('#r-mm').oninput = e => { R.P = Lib.ajustarP(Ps(), +e.target.value); e.target.value = R.P; $('#r-mm-v').textContent = `${R.P} mm`; clearTimeout(debounce); debounce = setTimeout(() => actualizar(), 120); };
     $('#r-t').oninput = e => { R.t = +e.target.value; pintarHora(); };
     $('#r-play').onclick = play; eventos(); grillaPixeles();
     await actualizar(false); return true;

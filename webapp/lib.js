@@ -32,7 +32,7 @@
   // ("lote": {hmax_cm, pct5, pct20}); evita el recorte de la reproyección a 3857 (ver ruling en el bug).
   function loteSerieNativa(loteA, loteB, w, u) {
     const key = u === 20 ? 'pct20' : 'pct5';
-    const n = loteA.hmax_cm.length;
+    const n = Math.min(loteA.hmax_cm.length, loteB ? loteB.hmax_cm.length : Infinity);   // una corrida cortada puede ser más corta
     const hmax = [], pct = [];
     for (let t = 0; t < n; t++) {
       const ha = loteA.hmax_cm[t], pa = loteA[key][t];
@@ -40,17 +40,34 @@
       else { hmax.push(ha + (loteB.hmax_cm[t] - ha) * w); pct.push(pa + (loteB[key][t] - pa) * w); }
     }
     const horasConAgua = hmax.filter(v => v > u).length;
-    return { hmax, pct, horasConAgua, horaPico: hmax.indexOf(Math.max(...hmax)) };
+    return { hmax, pct, horasConAgua, horaPico: hmax.length ? hmax.indexOf(Math.max(...hmax)) : 0 };
+  }
+
+  // valores de P calculados para una (duración, suelo), desde index.json escenarios (formato viejo o grilla propia)
+  const pDisponibles = (esc, dur, suelo) => [...new Set(Object.values(esc || {}).filter(e => e.dur_h === dur && e.suelo === suelo).map(e => e.P_mm))].sort((a, b) => a - b);
+  function grillaRegular(Ps) {                           // equiespaciada con ≥ 2 valores: el deslizador interpola cada 5 mm
+    if (Ps.length < 2) return false;
+    const d = Ps[1] - Ps[0]; return d > 0 && Ps.every((p, i) => i === 0 || Math.abs(p - Ps[i - 1] - d) < 1e-9);
+  }
+  function ajustarP(Ps, P) {                             // P que se muestra de verdad: acotado y en paso 5 (regular) o al calculado más cercano
+    if (!Ps.length) return P;
+    const lo = Ps[0], hi = Ps[Ps.length - 1];
+    if (grillaRegular(Ps)) return Math.min(hi, Math.max(lo, lo + Math.round((P - lo) / 5) * 5));
+    return Ps.reduce((m, p) => (Math.abs(p - P) < Math.abs(m - P) ? p : m), Ps[0]);
   }
 
   const nivelCerteza = c => (c >= 70 ? 'probable' : c >= 30 ? 'posible' : c >= 5 ? 'poco' : null);
 
   function retornoAnios(mm, g) {
+    if (!g || !Number.isFinite(mm) || !Number.isFinite(g.mu) || !Number.isFinite(g.beta) || g.beta <= 0) return NaN;
     const pExc = 1 - Math.exp(-Math.exp(-(mm - g.mu) / g.beta));
     return pExc <= 0 ? Infinity : 1 / pExc;
   }
 
   const durTexto = dur => (dur <= 3 ? 'un chaparrón de 3 h' : dur <= 24 ? 'un día de lluvia' : 'un temporal de 3 días');
+  const durUnidad = dur => (dur <= 3 ? 'chaparrón de 3 h' : dur <= 24 ? 'día' : 'temporal de 3 días');
+  const T_MAX = 100;                                     // más allá de 100 años el ajuste de Gumbel con ~85 años de datos no dice nada
+  const aniosTxt = T => (T > T_MAX ? `más de ${T_MAX}` : fmt(Math.round(T)));
   const NIVEL_TXT = { probable: 'probable', posible: 'posible', poco: 'poco probable' };
 
   function fraccion(pct) {
@@ -63,15 +80,16 @@
   }
 
   function frecuencia(o) {
-    const unDia = o.dur <= 24 ? 'día' : 'temporal';
-    if (!Number.isFinite(o.Tera5)) return o.maxHistorico != null ? `Más de lo que llovió en cualquier ${unDia} desde ${o.desde || 1940}.` : '';
+    if (o.maxHistorico != null && o.P > o.maxHistorico) return `Más de lo que llovió en cualquier ${durUnidad(o.dur)} desde ${o.desde || 1940}.`;
+    if (Number.isNaN(o.Tera5) || o.Tera5 == null) return '';
+    if (o.Tera5 > T_MAX) return `Una lluvia así es más rara que una vez cada ${T_MAX} años.`;
     if (o.Tera5 < 1.5) return 'Una lluvia así pasa casi todos los años.';
-    const a = Math.round(o.Tera5);
-    if (o.Tchirps && Number.isFinite(o.Tchirps) && (o.Tchirps / o.Tera5 > 2 || o.Tera5 / o.Tchirps > 2)) {
-      const [x, y] = [a, Math.round(o.Tchirps)].sort((m, n) => m - n);
-      return `Una lluvia así pasa cada ${x} a ${y} años según la fuente.`;
+    const tc = o.Tchirps;
+    if (tc > 0 && (tc / o.Tera5 > 2 || o.Tera5 / tc > 2)) {   // NaN/null/0 no entran; Infinity sí (se muestra "más de 100")
+      const [x, y] = [o.Tera5, tc].sort((m, n) => m - n);
+      return `Una lluvia así pasa cada ${aniosTxt(x)} a ${aniosTxt(y)} años según la fuente.`;
     }
-    return `Una lluvia así pasa cada ~${a} años.`;
+    return `Una lluvia así pasa cada ~${aniosTxt(o.Tera5)} años.`;
   }
 
   function frase(o) {
@@ -106,6 +124,6 @@
     return evento ? { evento, filas: rs.filter(r => r.evento === evento) } : null;
   }
 
-  const Lib = { fmt, pickNeighbors, lerp, loteSerie, loteSerieNativa, nivelCerteza, retornoAnios, durTexto, frase, matchRadar };
+  const Lib = { fmt, pickNeighbors, pDisponibles, grillaRegular, ajustarP, lerp, loteSerie, loteSerieNativa, nivelCerteza, retornoAnios, durTexto, frase, matchRadar };
   if (typeof module !== 'undefined' && module.exports) module.exports = Lib; else root.Lib = Lib;
 })(this);
