@@ -30,8 +30,10 @@ from shapely.ops import nearest_points  # noqa: E402
 
 from . import __version__  # noqa: E402
 from .common import read_window  # noqa: E402
+from .paletas import HAND_CLASES, hand_incertidumbre  # noqa: E402
 from .project import Project  # noqa: E402
-from .report import f as fnum  # noqa: E402
+from .report import eventos_analizados, f as fnum  # noqa: E402
+from .rog import ficha_ids  # noqa: E402
 
 A4 = (11.69, 8.27)                     # A4 apaisado, pulgadas
 MAP = [0.03, 0.10, 0.60, 0.83]         # caja del mapa en láminas de un solo mapa
@@ -91,9 +93,18 @@ class _Ctx:
         self.n_pix = int(float(self.k.get("n_celdas_lote", 0) or 0))
         self.osm = gpd.read_file(p.out / "osm_waterways.geojson") if (p.out / "osm_waterways.geojson").exists() else None
         self.rog = pd.read_csv(p.out / "rog_stats.csv") if (p.out / "rog_stats.csv").exists() else None
+        if self.rog is not None:
+            self.rog = self.rog[self.rog["escenario"].isin(ficha_ids(p.cfg["lluvia"]))].reset_index(drop=True)
         self.sar = pd.read_csv(p.out / "sar_stats.csv") if (p.out / "sar_stats.csv").exists() else None
         self.jrc = pd.read_csv(p.out / "jrc_stats.csv") if (p.out / "jrc_stats.csv").exists() else None
-        self.years = sorted({str(e.get("fecha", ""))[:4] for e in p.cfg.get("sar", {}).get("eventos", []) if e.get("fecha")})
+        self.years = sorted({e[:4] for e in eventos_analizados({"sar": self.sar})})
+        hmin = self.k.get("hand_min_lote")
+        hmin = float(hmin) if hmin is not None else float("nan")
+        self.hinc = hand_incertidumbre(
+            hmin,
+            [float(v) for v in ts.loc[ts["variable"] == "hand_min_lote"].iloc[0, 1:]] if len(ts) and (ts["variable"] == "hand_min_lote").any() else [],
+            float(p.cfg.get("terreno", {}).get("sigma_dem_m", 1.0)),
+        ) if np.isfinite(hmin) else None
         self.num = {}   # nombre de lámina -> número, para las referencias cruzadas del resumen
 
     def kf(self, key, d=2):
@@ -329,15 +340,17 @@ def _lam_cotas(ctx: _Ctx, n: int):
 def _lam_hand(ctx: _Ctx, n: int):
     hand, trh = ctx.rd(ctx.T / f"hand_{ctx.k0}.tif")
     fig, ax = _page(ctx, f"{n} · Cuánto tendría que subir el agua desde el drenaje para llegar"); _basemap(ax, ctx, ctx.ext)
-    hs = _classes(ax, hand, trh, [0, 0.5, 1, 2, 3], ["#b71c1c", "#e53935", "#fb8c00", "#fdd835"])
-    for h_, lab in zip(hs, ["menos de 0,5 m (drenaje y su borde)", "0,5 – 1 m (muy bajo)", "1 – 2 m (bajo)", "2 – 3 m (medio)"]):
+    hs = _classes(ax, hand, trh, [lo for lo, _, _, _ in HAND_CLASES] + [HAND_CLASES[-1][1]], [c for _, _, c, _ in HAND_CLASES])
+    for h_, (_, _, _, lab) in zip(hs, HAND_CLASES):
         h_.set_label(lab)
-    hs.append(patches.Patch(fc="none", ec="#999", label="sin color: más de 3 m (alto)")); hs += _streams(ax, ctx); hs.append(_lot_handle())
+    hs.append(patches.Patch(fc="none", ec="#999", label="sin color: más de 5 m (alto)")); hs += _streams(ax, ctx); hs.append(_lot_handle())
     _frame(ax, ctx, ctx.ext)
     cap = (f"Cada color indica cuántos metros tendría que subir el agua desde la línea de drenaje más cercana, siguiendo el camino del agua, para llegar a ese punto (HAND). "
            f"En el lote son {ctx.kf('hand_min_lote')} a {ctx.kf('hand_max_lote')} m. En el entorno de {ctx.aoi_lab}, el {ctx.kf('pct_aoi_hand_le1', 0)} % está a menos de 1 m y el "
            f"{ctx.kf('pct_aoi_hand_le2', 0)} % a menos de 2 m: es una llanura, casi todo está bajo. Lo que importa es la posición relativa del lote. "
-           f"Veredicto por desborde del drenaje: {ctx.ev.get('desborde', {}).get('nivel', '—')}.")
+           f"Veredicto por desborde del drenaje: {ctx.ev.get('desborde', {}).get('nivel', '—')}."
+           + (f" Con el error típico del modelo de terreno (± {fnum(ctx.hinc['sigma'])} m), la probabilidad de que el lote esté a menos de 1 m del drenaje es de "
+              f"~{fnum(ctx.hinc['p_lt1'], 0)} %." if ctx.hinc else ""))
     _side(fig, hs, cap, "altura sobre el drenaje (HAND)")
     return fig, "04_altura_sobre_el_drenaje.png"
 
@@ -383,6 +396,10 @@ def _lam_corredor(ctx: _Ctx, n: int, dr, prof):
              bbox=dict(fc="white", ec="none", alpha=0.7, pad=1))
     zmin_lote = float(k.get("z_min_lote"))
     axp.axhline(zmin_lote, color=C_LOTE, lw=1.2, linestyle="--", zorder=2)
+    if ctx.hinc is not None:
+        sg = ctx.hinc["sigma"]
+        axp.axhspan(zmin_lote - sg, zmin_lote + sg, color=C_LOTE, alpha=0.07, zorder=1)
+        axp.text(x[-1] - 5, zmin_lote + sg, f"± {fnum(sg)} m (error típico del DEM) ", ha="right", va="bottom", fontsize=7.2, color=C_LOTE)
     axp.text(x[0] + 5, zmin_lote, f" punto más bajo del lote ({fnum(zmin_lote)} m)", va="bottom", fontsize=7.8, color=C_LOTE,
              bbox=dict(fc="white", ec="none", alpha=0.7, pad=1))
     if abs(dr["x_lote"]) <= 320:
