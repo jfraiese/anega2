@@ -52,6 +52,9 @@ pre { font-size:11px; background:#f3f4f6; padding:8px; border-radius:6px; overfl
 .legend .bar { height:10px; border-radius:3px; border:1px solid rgba(0,0,0,.2); margin:3px 0 1px; }
 .legend .ticks { display:flex; justify-content:space-between; color:var(--muted); }
 .legend .cls { display:flex; align-items:center; gap:6px; }
+.legend .legend-cert { margin-top:8px; padding-top:6px; border-top:1px solid var(--line); }
+.swatch-cert { position:relative; overflow:hidden; background:repeating-linear-gradient(45deg,#6b7a4f 0 4px,#8a8f6a 4px 8px); }
+.swatch-cert-fill { position:absolute; inset:0; }
 .leaflet-popup-content { font-size:12px; margin:8px 10px; }
 .leaflet-popup-content table td { padding:1px 6px 1px 0; border:none; }
 @media (max-width: 900px) { main { grid-template-columns: 1fr; grid-template-rows: 55vh 45vh; } .panel { border-left:none; border-top:1px solid var(--line); } }

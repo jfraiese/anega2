@@ -145,9 +145,12 @@ const Resumen = (() => {
   }
   function leyenda() {
     const sw = (css, lab) => `<div class="cls"><span class="swatch" style="background:${css}"></span>${lab}</div>`;
-    $('#legend').innerHTML = '<div class="item"><b>Agua</b>'
-      + [[2, '2 cm'], [5, '5 cm · cubre el pie'], [20, '20 cm · media pierna'], [50, '50 cm · rodilla']].map(([v, l]) => sw(`rgb(${Sim.color(v).join(',')})`, l)).join('')
-      + sw('rgba(33,113,181,.95)', 'probable') + sw('rgba(33,113,181,.55)', 'posible') + sw('rgba(33,113,181,.2)', 'poco probable') + '</div>';
+    const swCert = (a, lab) => `<div class="cls"><span class="swatch swatch-cert"><span class="swatch-cert-fill" style="background:rgba(57,135,229,${a})"></span></span>${lab}</div>`;
+    $('#legend').innerHTML = '<div class="item"><b>Profundidad del agua</b>'
+      + [[2, '2 a 5 cm · moja los pies'], [5, '5 a 20 cm · cubre el pie'], [20, '20 a 50 cm · media pierna'], [50, 'más de 50 cm · rodilla o más']]
+        .map(([v, l]) => sw(`rgb(${Sim.color(v).join(',')})`, l)).join('')
+      + '</div><div class="item legend-cert"><b>Certeza</b>'
+      + swCert(0.95, 'probable') + swCert(0.55, 'posible') + swCert(0.2, 'poco probable') + '</div>';
   }
   function click(e) {
     const i = Sim.celda(e.latlng); if (i == null || !R.mezcla) return;

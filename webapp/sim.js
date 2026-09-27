@@ -40,7 +40,7 @@ const Sim = (() => {
              loteLo: eLo.lote, loteHi: eHi.lote };
   }
   // azules por profundidad; alpha por nivel de certeza; < 2 cm transparente
-  const STOPS = [[2, [198, 219, 239]], [5, [107, 174, 214]], [20, [33, 113, 181]], [50, [8, 69, 148]], [100, [8, 48, 107]]];
+  const STOPS = [[2, [134, 182, 239]], [5, [57, 135, 229]], [20, [28, 92, 171]], [50, [13, 54, 107]]];
   function color(cm) { let c = STOPS[0][1]; for (const [v, col] of STOPS) if (cm >= v) c = col; return c; }
   const ALPHA = { probable: 242, posible: 140, poco: 51 };
   function pintar(canvas, h, cert) {
