@@ -22,3 +22,6 @@ include-package-data = true
 
 [tool.setuptools.package-data]
 anega2 = ["*.yml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

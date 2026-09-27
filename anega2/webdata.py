@@ -25,8 +25,10 @@ from PIL import Image
 from rasterio.warp import Resampling, calculate_default_transform, reproject, transform_bounds
 from rasterio.windows import from_bounds
 
-from .common import CRS_WGS84
+from .common import CRS_WGS84, json_limpio
+from .paletas import HAND_CLASES, hand_clase, hand_incertidumbre
 from .project import PROJECTS_DIR, Project
+from .rog import ficha_ids, scenario_specs
 
 EPSG3857 = "EPSG:3857"
 JRC_CMAP = colors.LinearSegmentedColormap.from_list("jrc", ["#ffffff", "#ff0000", "#8b00ff", "#0000ff"])
@@ -160,6 +162,35 @@ def update_index() -> list:
     return rows
 
 
+def _copiar_veredicto(out: Path, web: Path, B: Builder) -> dict:
+    """out/veredicto.json (fase informe) → web/veredicto.json; si falta, avisa y borra la copia vieja."""
+    if not (out / "veredicto.json").exists():
+        (web / "veredicto.json").unlink(missing_ok=True)
+        B.warn(f"falta out/veredicto.json: correr anega2 run {B.p.name} --fase informe"); return {}
+    shutil.copy(out / "veredicto.json", web / "veredicto.json")
+    return json.load(open(out / "veredicto.json"))
+
+
+def _limpiar_viejos(web: Path, out: Path) -> None:
+    """Antes de regenerar: borra capas de simulación (img/rog_*, geo/rog_v_*) y figuras que ya no están en out/,
+    así un escenario que dejó de configurarse no queda publicado."""
+    for q in [*(web / "img").glob("rog_*"), *(web / "geo").glob("rog_v_*")]:
+        q.unlink()
+    for q in (web / "figures").glob("*.png"):
+        if not (out / q.name).exists():
+            q.unlink()
+
+
+def _vista_resumen(p: Project, B: Builder) -> None:
+    """Cuadros horarios 3857 + certeza (vista Resumen del visor). No debe abortar la fase web: un fallo
+    (falta la fase lluvia, DEM incompatible, etc.) se registra como aviso y el resto de la fase sigue."""
+    from . import websim
+    try:
+        websim.run(p)
+    except Exception as e:  # noqa: BLE001
+        B.warn(f"vista Resumen no generada: {e}")
+
+
 def run(p: Project) -> dict:
     aoi = p.load_aoi(); out = p.out; proc = p.data_proc; web = p.web
     crs = p.crs; aoi_m = p.aoi_m; hidro_m = p.hidro_m
@@ -169,7 +200,7 @@ def run(p: Project) -> dict:
     T = proc / "terrain" / primary if primary else None
     lote = aoi["lote"]; c = lote.centroid
     grilla_m = float(p.buffers.get("grilla_m", 2000)); ext3 = lote.buffer(3000).envelope; extg = lote.buffer(grilla_m).envelope
-    B = Builder(p)
+    B = Builder(p); _limpiar_viejos(web, out)
     if primary is None:
         B.warn("falta out/terrain_primary.json (correr la fase terreno); se generan sólo las capas de referencia")
 
@@ -214,8 +245,9 @@ def run(p: Project) -> dict:
             res_m = abs(s.transform.a)
         B.raster("dem", "Elevación (m snm)", "Terreno", T / "dem.tif", "terrain", None, None, "m", description=f"DEM primario {primary} ({res_m:.0f} m).")
         hand_src = _first(T / "hand_05km2.tif", _glob1(T, "hand_*.tif"))
-        B.raster("hand", "HAND · altura sobre el drenaje (m)", "Terreno", hand_src, "RdYlBu", 0, 6, "m", visible=True,
-                 description="Altura sobre la celda de drenaje a la que escurre cada celda. Rojo = bajo.")
+        B.raster("hand", "HAND · altura sobre el drenaje (m)", "Terreno", hand_src, transform_fn=hand_clase, visible=False,
+                 categorical={i: (lab, col) for i, (_, _, col, lab) in enumerate(HAND_CLASES)},
+                 description="Cuántos metros tendría que subir el agua desde el drenaje para llegar. Rojo = bajo; sin color = más de 5 m.")
         B.raster("slope", "Pendiente (%)", "Terreno", T / "slope_deg.tif", "magma", 0, 3, "%", transform_fn=sl2pct)
         B.raster("twi", "TWI · índice de humedad", "Terreno", T / "twi.tif", "Blues", 5, 15, "")
         B.raster("sink", "Depresiones cerradas · profundidad (m)", "Terreno", T / "sink_depth.tif", "PuBu", 0, 0.5, "m", mask_below=0.0)
@@ -230,7 +262,7 @@ def run(p: Project) -> dict:
     sar = pd.read_csv(sar_csv) if sar_csv.exists() else pd.DataFrame()
     scenes = []
     for _, r in sar.iterrows():
-        if not isinstance(r.get("escena"), str) or r["escena"] == "SIN COBERTURA":
+        if not isinstance(r.get("escena"), str) or r["escena"] in ("SIN COBERTURA", "SIN PASADA A TIEMPO"):
             continue
         db = _first(proc / "s1" / f"{r['escena']}_VV_db.tif", _glob1(proc / "s1", f"{r['escena']}_VV_db*.tif"))
         if db is None:
@@ -257,10 +289,12 @@ def run(p: Project) -> dict:
     rog_csv = out / "rog_stats.csv"
     rog = pd.read_csv(rog_csv) if rog_csv.exists() else pd.DataFrame()
     cfg_ll = p.cfg.get("lluvia", {})
-    by_id = {s["id"]: s for s in cfg_ll.get("escenarios", [])}
+    by_id = {s["id"]: s for s in scenario_specs(cfg_ll)}
     scen = []
     for q in sorted((proc / "rog").glob("*_hmax_dom.tif")) if (proc / "rog").exists() else []:
         name = q.name.replace("_hmax_dom.tif", "")
+        if name not in ficha_ids(cfg_ll):
+            continue
         meta_p = proc / "rog" / f"{name}_meta.json"
         meta = json.load(open(meta_p)) if meta_p.exists() else {}
         row = rog[rog.escenario == name].iloc[0].to_dict() if len(rog) and (rog.escenario == name).any() else {}
@@ -295,7 +329,7 @@ def run(p: Project) -> dict:
     manifest = dict(nombre=p.name, titulo=p.titulo, crs=crs, aoi_m=aoi_m, hidro_m=hidro_m, res_m=res_m, primary=primary,
                     generado=_dt.datetime.now().isoformat(timespec="seconds"), center=[float(c84.y), float(c84.x)],
                     layers=B.layers, scenes=scenes, scenarios=scen)
-    json.dump(manifest, open(web / "layers.json", "w"), ensure_ascii=False, indent=0)
+    json.dump(json_limpio(manifest), open(web / "layers.json", "w"), ensure_ascii=False, indent=0, allow_nan=False)
 
     # --- grid.json (±grilla_m) ---
     grid = {}; tr = None; shape_ = None
@@ -328,11 +362,16 @@ def run(p: Project) -> dict:
     # --- stats.json ---
     ts_p = out / "terrain_stats.csv"
     ts = pd.read_csv(ts_p) if ts_p.exists() else pd.DataFrame(columns=["variable"])
-    readme = (out / "README.md").read_text() if (out / "README.md").exists() else ""
-    m = re.search(r"## Veredicto\n(.*?)\n---", readme, re.S)
-    m2 = re.search(r"## 5\. Qué chequear en campo\n(.*)$", readme, re.S)
+    vj = _copiar_veredicto(out, web, B)
     prim_cols = [cc for cc in ts.columns if "(primario)" in cc]
     kv = dict(zip(ts["variable"], ts[prim_cols[0]])) if prim_cols else {}
+    hand_min_lote = kv.get("hand_min_lote")
+    hand_min_lote = float(hand_min_lote) if hand_min_lote is not None else float("nan")
+    hand_incert = hand_incertidumbre(
+        hand_min_lote,
+        [float(v) for v in ts.loc[ts["variable"] == "hand_min_lote"].iloc[0, 1:]] if len(ts) and (ts["variable"] == "hand_min_lote").any() else [],
+        float(p.cfg.get("terreno", {}).get("sigma_dem_m", 1.0)),
+    ) if np.isfinite(hand_min_lote) else None
     stats = dict(
         nombre=p.name, titulo=p.titulo, crs=crs, aoi_m=aoi_m, hidro_m=hidro_m, res_m=res_m, generado=manifest["generado"],
         lote=dict(area_m2=round(lote.area, 1), centroide_wgs84=manifest["center"], E=round(c.x, 1), N=round(c.y, 1)),
@@ -340,11 +379,11 @@ def run(p: Project) -> dict:
         jrc=_csv_rows(out / "jrc_stats.csv"), sar=_csv_rows(sar_csv), rog=_csv_rows(rog_csv),
         rog_params=json.load(open(out / "rog_params.json")) if (out / "rog_params.json").exists() else {},
         depresiones=_csv_rows(_first(out / "terrain_depresiones_aoi.csv", out / "terrain_depresiones_500m.csv")),
-        verdict_md=m.group(1).strip() if m else "", field_md=m2.group(1).strip() if m2 else "",
+        verdict_md=vj.get("verdict_md", ""), field_md=vj.get("field_md", ""),
         jrc_extra=_jrc_extra(out / "jrc_stats.md"),
+        hand_incert=hand_incert,
     )
-    json.dump(stats, open(web / "stats.json", "w"), ensure_ascii=False,
-              default=lambda o: None if (isinstance(o, float) and np.isnan(o)) else str(o))
+    json.dump(json_limpio(stats), open(web / "stats.json", "w"), ensure_ascii=False, allow_nan=False, default=str)
 
     # --- figuras ---
     caps = {"00_": "Ubicación", "10_terrain_": "Terreno · ", "20_jrc_": "JRC · ", "30_sar_": "Sentinel-1 · ", "40_rog_": "Rain-on-grid · "}
@@ -354,6 +393,7 @@ def run(p: Project) -> dict:
         cap = next((v + q.stem[len(k):].replace("_", " ") for k, v in caps.items() if q.name.startswith(k)), q.stem)
         figs.append(dict(file=f"figures/{q.name}", caption=cap))
     json.dump(figs, open(web / "figures.json", "w"), ensure_ascii=False)
+    _vista_resumen(p, B)
     idx = update_index()
     size_mb = sum(f.stat().st_size for f in web.rglob("*") if f.is_file()) / 1e6
     p.summary_line("FASE WEB (datos del visor)", [

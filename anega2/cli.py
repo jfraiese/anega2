@@ -18,6 +18,7 @@ FASES = [  # (nombre CLI, descripción, módulo)
     ("dem", "descarga de DEMs (IGN, Copernicus GLO-30, FABDEM)", "dem"),
     ("terreno", "análisis de terreno con WhiteboxTools (red, HAND, depresiones, cuenca)", "terrain"),
     ("agua", "histórico de agua superficial (JRC Global Surface Water)", "water"),
+    ("clima", "lluvia histórica en el lote (ERA5 + CHIRPS): máximos, período de retorno, tormentas", "clima"),
     ("sar", "detección de agua por evento con Sentinel-1", "sar"),
     ("lluvia", "simulación lluvia → lámina (Landlab rain-on-grid)", "rog"),
     ("informe", "informe automático out/README.md (veredicto por reglas)", "report"),
@@ -87,7 +88,7 @@ def cmd_list(a) -> int:
     for n in Project.list_projects():
         p = Project.load(n)
         done = [f for f, _, mod in FASES if (p.out / {"aoi": "aoi.gpkg", "dem": "../data/raw/dem_inventory.json", "terreno": "terrain_stats.csv",
-                                                     "agua": "jrc_stats.csv", "sar": "sar_stats.csv", "lluvia": "rog_stats.csv", "informe": "README.md", "ficha": f"ficha_{n}.pdf",
+                                                     "agua": "jrc_stats.csv", "clima": "clima.json", "sar": "sar_stats.csv", "lluvia": "rog_stats.csv", "informe": "README.md", "ficha": f"ficha_{n}.pdf",
                                                      "kml": f"{n}.kml", "web": "../web/layers.json"}[f]).exists()]
         print(f"{n:<24} {p.titulo:<40} fases listas: {', '.join(done) or '-'}")
     return 0

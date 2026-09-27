@@ -15,6 +15,17 @@ CRS_WGS84 = "EPSG:4326"
 
 
 # --- Lote / AOI -----------------------------------------------------------
+def json_limpio(o):
+    """Copia apta para JSON estricto: NaN/±inf (float o numpy) → None, recursivo en dict/list/tuple."""
+    if isinstance(o, dict):
+        return {k: json_limpio(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [json_limpio(v) for v in o]
+    if isinstance(o, (float, np.floating)):
+        return float(o) if np.isfinite(o) else None
+    return o
+
+
 def read_lot_polygon(kml_path: Path, crs: str):
     """Devuelve (polígono shapely en crs, descripción). Usa el polígono más grande si hay varios."""
     g = gpd.read_file(kml_path)
@@ -95,7 +106,7 @@ def read_window(path: Path, geom):
 # --- Plot -----------------------------------------------------------------
 def plot_map(arr, transform, aoi: dict, title: str, out_png: Path, cmap="viridis", vmin=None, vmax=None,
              cbar_label="", extent_geom=None, overlays=None, discrete_labels=None, figsize=(9, 8),
-             hillshade=None, nodata_color="white"):
+             hillshade=None, nodata_color="white", norm=None):
     """PNG con raster + lote (rojo) + buffer AOI (naranja). overlays: [(GeoSeries/geom, kwargs)]."""
     import matplotlib
     matplotlib.use("Agg")
@@ -109,14 +120,13 @@ def plot_map(arr, transform, aoi: dict, title: str, out_png: Path, cmap="viridis
     if hillshade is not None:
         ax.imshow(hillshade, extent=ext, cmap="gray", vmin=0, vmax=255, interpolation="nearest")
     a = np.ma.masked_invalid(arr) if np.issubdtype(np.asarray(arr).dtype, np.floating) else np.ma.asarray(arr)
-    norm = None
     if discrete_labels:
         vals = sorted(discrete_labels)
         cmap = ListedColormap([discrete_labels[v][1] for v in vals])
         norm = BoundaryNorm([v - 0.5 for v in vals] + [vals[-1] + 0.5], cmap.N)
     im = ax.imshow(a, extent=ext, cmap=cmap, vmin=vmin, vmax=vmax, norm=norm, interpolation="nearest",
                    alpha=0.85 if hillshade is not None else 1.0)
-    im.cmap.set_bad(nodata_color, alpha=0)
+    cmap_local = im.cmap.copy(); cmap_local.set_bad(nodata_color, alpha=0); im.set_cmap(cmap_local)
     for g, kw in (overlays or []):
         gs = g if isinstance(g, gpd.GeoSeries) else gpd.GeoSeries(g, crs=crs)
         gs.plot(ax=ax, **kw)

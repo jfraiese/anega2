@@ -1,7 +1,8 @@
 """Informe automático (out/README.md): números clave, veredicto por reglas (rules.yml) y chequeos de campo.
 
 Lee las tablas producidas por terrain/water/sar/rog. Las fases ausentes se marcan como pendientes.
-Mantiene los encabezados que usa webdata.py: '## Veredicto' … '---' y '## 5. Qué chequear en campo'.
+`run()` también escribe out/veredicto.json (indicadores, veredicto, verdict_md, field_md, etiqueta,
+frase_nivel), que webdata.py copia a web/veredicto.json y usa para stats.verdict_md/field_md.
 """
 from __future__ import annotations
 
@@ -40,10 +41,36 @@ def _num(v):
         return None
 
 
+T_MAX = 100   # más allá de 100 años, Gumbel ajustado con ~85 años de ERA5 (o ~45 de CHIRPS) no dice nada
+
+
+def anios_txt(T: float) -> str:
+    return f"más de {T_MAX}" if T > T_MAX else f(T, 0)
+
+
+def frecuencia_100mm(cl: dict | None) -> str | None:
+    """«100 mm en 24 h ≈ cada N años (ERA5; CHIRPS: M)», con tope de 100 años; None sin datos de clima."""
+    from .clima import gumbel_T
+    g = ((cl or {}).get("gumbel") or {}) if (cl or {}).get("disponible") else {}
+    t_e = gumbel_T(g["era5"]["24"], 100) if "24" in (g.get("era5") or {}) else float("nan")
+    if not math.isfinite(t_e) and t_e != float("inf"):
+        return None
+    g_c = (g.get("chirps") or {}).get("24"); t_c = gumbel_T(g_c, 100) if g_c else float("nan")
+    s = "100 mm en 24 h ≈ " + (f"más rara que una vez cada {T_MAX} años" if t_e > T_MAX else f"cada {anios_txt(t_e)} años")
+    return s + " (ERA5" + (f"; CHIRPS: {anios_txt(t_c)}" if not math.isnan(t_c) else "") + ")"
+
+
+def eventos_analizados(R: dict) -> list[str]:
+    s = R.get("sar")
+    if s is None or "evento" not in s:
+        return []
+    return list(dict.fromkeys(str(e).split("_")[0] for e in s["evento"] if e != "referencia_seca"))
+
+
 # ------------------------------------------------------------------ carga de resultados
 def load_results(p: Project) -> dict:
     o = p.out
-    R: dict = {"primary": None, "terrain": None, "key": {}, "deps": None, "jrc": None, "jrc_extra": "", "sar": None, "rog": None, "rog_params": {}}
+    R: dict = {"primary": None, "terrain": None, "key": {}, "deps": None, "jrc": None, "jrc_extra": "", "sar": None, "rog": None, "rog_params": {}, "clima": None}
     if (o / "terrain_primary.json").exists():
         R["primary"] = json.load(open(o / "terrain_primary.json"))
     if (o / "terrain_stats.csv").exists():
@@ -68,6 +95,7 @@ def load_results(p: Project) -> dict:
         R["rog"] = pd.read_csv(o / "rog_stats.csv")
     if (o / "rog_params.json").exists():
         R["rog_params"] = json.load(open(o / "rog_params.json"))
+    R["clima"] = json.load(open(o / "clima.json")) if (o / "clima.json").exists() else None
     return R
 
 
@@ -93,7 +121,7 @@ def indicators(R: dict, p: Project) -> dict:
     if R["rog"] is not None and len(R["rog"]):
         r = R["rog"]
         def row_for(P, sat=False):
-            m = (r["P_mm"] == P) & (r["dur_h"] >= 6) & (r["escenario"].str.endswith("_sat") == sat)
+            m = (r["P_mm"] == P) & (r["dur_h"] == 24) & (r["escenario"].str.endswith("_sat") == sat)
             return r[m].iloc[0] if m.any() else None
         r100 = row_for(100); r150 = row_for(150)
         if r100 is not None:
@@ -198,6 +226,8 @@ def _tabla_sar(R, p) -> str:
     colc = "pct_500m_caida_3dB" if "pct_500m_caida_3dB" in s_ else "pct_aoi_caida_3dB"
     s = f"| Evento | Escena (días respecto del evento) | Agua en lote / {aoi} / {p.hidro_m/1000:.0f} km | Entorno con caída > 3 dB vs. referencia seca |\n|---|---|---|---|\n"
     for _, r in s_.iterrows():
+        if r.get("escena") == "SIN PASADA A TIEMPO":
+            s += f"| {str(r['evento']).replace('_', ' ')} | **sin pasada a tiempo** (no se puede saber) | — | — |\n"; continue
         if r.get("escena") == "SIN COBERTURA" or pd.isna(r.get("fecha")):
             s += f"| {str(r['evento']).replace('_', ' ')} | **sin cobertura Sentinel-1** | — | — |\n"; continue
         dd = _num(r.get("dias_desde_evento"))
@@ -266,6 +296,9 @@ def _veredicto(ev: dict, ind: dict, R: dict, p: Project) -> str:
     falt = ev["lluvia_local"]["faltan"] + ev["desborde"]["faltan"]
     if falt:
         s += "- **Indicadores sin datos** (fase pendiente): " + "; ".join(falt) + ".\n"
+    fr = frecuencia_100mm(R.get("clima"))
+    if fr:
+        s += f"- **Frecuencia** (Gumbel sobre máximos anuales; tope de {T_MAX} años): {fr}.\n"
     s += ("- **Limitación principal**: la topografía disponible es de 30 m de píxel, con ruido vertical de décimas de metro y sin "
           "microrrelieve (zanjas, terraplenes, alcantarillas). A escala de lote la diferencia entre anegarse o no está en "
           "decenas de centímetros que el DEM no resuelve. **El veredicto es un diagnóstico regional que hay que confirmar en campo.**\n")
@@ -280,7 +313,7 @@ def _campo(ev: dict, R: dict, p: Project) -> str:
    claramente menor, el riesgo de desborde sube un nivel; si es mayor, baja.
 2. **Alcantarillas y terraplenes**: rutas, caminos y vías entre el lote y el drenaje cortan la planicie. Ver diámetro y estado de
    las alcantarillas y si algún terraplén actúa como dique del lado del lote.
-3. **Marcas de crecida y testimonio de vecinos**: preguntar por los eventos analizados ({', '.join(e['id'].split('_')[0] for e in p.cfg['sar']['eventos'])})
+3. **Marcas de crecida y testimonio de vecinos**: preguntar por los eventos analizados ({', '.join(eventos_analizados(R)) or 'las lluvias grandes recientes'})
    y por la napa (si en años húmedos el agua "brota"). Buscar marcas en postes, alambrados y troncos.
 4. **Napa y suelo**: en época húmeda, un pozo de 1-1,5 m para ver la profundidad de la napa; en la llanura pampeana el anegamiento
    por napa alta es tan frecuente como el desborde.
@@ -289,6 +322,16 @@ def _campo(ev: dict, R: dict, p: Project) -> str:
 6. **Cota de piso**: si se construye, elevar el piso al menos 0,5 m sobre el terreno natural (y por encima de la cota de crecida
    que surja del punto 1) cubre casi todo el rango de incertidumbre de este análisis.
 """
+
+
+FRASES_NIVEL = {"BAJO": "No se esperan problemas de agua con lluvias normales ni grandes.",
+                "MEDIO-BAJO": "Con lluvias muy grandes puede juntar algo de agua.",
+                "MEDIO": "Con lluvias grandes, parte del lote se anega por unas horas.",
+                "ALTO": "Se anega con frecuencia o está en la zona que ocupa el agua del arroyo."}
+
+
+def etiqueta(nivel: str) -> tuple[str, str]:
+    return f"Riesgo {nivel.lower()}", FRASES_NIVEL.get(nivel, "")
 
 
 def _reglas_md() -> str:
@@ -306,7 +349,9 @@ def build(p: Project) -> tuple[str, dict]:
     aoi = f"{p.aoi_m:.0f} m"
     rp = R["rog_params"]; prim = (R["primary"] or {}).get("primary", "—")
     rog_tab, rog_eff = _tabla_rog(R, p)
-    ev_ids = [e["id"] for e in p.cfg["sar"]["eventos"]]
+    ev_ids = eventos_analizados(R) or ["ninguno"]
+    veredicto_md = _veredicto(ev, ind, R, p)
+    campo_md = _campo(ev, R, p)
     md = f"""# Riesgo de anegamiento — {p.titulo} · interpretación
 
 **Polígono**: {f(p.load_aoi()['lote'].area, 0)} m², centroide {lat:.6f}, {lon:.6f} (WGS84), CRS de trabajo {p.crs} ({p.crs_descr}).
@@ -317,7 +362,7 @@ Buffers: área de interés {aoi}, análisis hidrológico {p.hidro_m/1000:.0f} km
 
 ## Veredicto
 
-{_veredicto(ev, ind, R, p)}
+{veredicto_md}
 ---
 
 ## 1. Dónde está el lote en el relieve (terreno)
@@ -348,35 +393,37 @@ Figuras `30_sar_*.png`.
 Modelo 2D Landlab `OverlandFlow` sobre el DEM primario corregido ({prim}, 30 m), dominio de ±{p.buffers['lluvia_m']/1000:.0f} km con bordes
 abiertos, Manning n = {rp.get('mannings_n', p.cfg['lluvia']['manning'])}, infiltración Green-Ampt con Ks = {rp.get('Ks_mm_h', p.cfg['lluvia']['Ks_mm_h'])} mm/h
 (ψ = {rp.get('psi_m', p.cfg['lluvia']['psi_m'])} m, Δθ = {rp.get('dtheta', p.cfg['lluvia']['dtheta'])}) y sensibilidad con Ks = {p.cfg['lluvia']['Ks_sat_mm_h']} mm/h (suelo saturado / napa alta).
-Hietograma de bloque alterno con relaciones P(d)/P(24 h) genéricas: **sin período de retorno** (no hay IDF local).
+Hietograma de bloque alterno con relaciones P(d)/P(24 h) genéricas (no hay IDF local); la frecuencia de cada lluvia se estima aparte (fase clima, Gumbel sobre ERA5/CHIRPS).
 
 {rog_tab}
 **Escenario → efecto**
 
 {rog_eff}
 Advertencias: no incluye la crecida que viene de fuera del dominio; las celdas son de 30 × 30 m; celdas aisladas con láminas
-> 1 m suelen ser pozos residuales del DEM; el balance de masa cierra por residuo. Figuras `40_rog_*.png`; tabla `rog_stats.md`.
+> 1 m suelen ser pozos residuales del DEM; la salida por los bordes se mide por flujo en el borde (error de balance de cada corrida en `data/proc/rog/<id>_meta.json`). Figuras `40_rog_*.png`; tabla `rog_stats.md`.
 
 ## 4. Limitaciones
 
 - **DEM de 30 m**: sin microrrelieve ni obras; los modelos de superficie (GLO-30, MDE-Ar) ven copas y techos; FABDEM los remueve
   estadísticamente. Datum vertical EGM2008 (FABDEM/GLO-30) o SRVN16 (IGN): irrelevante para alturas relativas.
 - **Sin calibración**: no hay aforos ni marcas de crecida; Manning y Green-Ampt son valores de literatura.
-- **Sin período de retorno**: los escenarios son "mm en 24 h".
+- **Período de retorno aproximado**: Gumbel sobre máximos anuales de ERA5 (28 km, subestima tormentas convectivas) y CHIRPS (5 km); no hay IDF local.
 - **Crecida del arroyo desde aguas arriba**: no simulada; el desborde se evalúa por HAND y por el registro satelital.
 - **Satélite**: Landsat no ve bajo nubes ni árboles; Sentinel-1 no ve bajo copas y cae días después del pico.
 
 ## 5. Qué chequear en campo
 
-{_campo(ev, R, p)}
+{campo_md}
 ## 6. Reglas del veredicto
 
 Niveles: {' < '.join(NIVELES)}. Cada componente toma el nivel más alto que dispare alguna regla; el global es el máximo de los dos.
 
 {_reglas_md()}
-Eventos Sentinel-1 configurados: {', '.join(ev_ids)}. Fuentes y licencias: `SOURCES.md` del repositorio.
+Eventos Sentinel-1 analizados: {', '.join(ev_ids)}. Fuentes y licencias: `SOURCES.md` del repositorio.
 """
-    return md, dict(indicadores=ind, veredicto=ev)
+    et, frase = etiqueta(ev["global"])
+    return md, dict(indicadores=ind, veredicto=ev, verdict_md=veredicto_md.strip(), field_md=campo_md.strip(),
+                     etiqueta=et, frase_nivel=frase)
 
 
 def run(p: Project) -> dict:

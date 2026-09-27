@@ -17,6 +17,7 @@ import geopandas as gpd
 
 from .common import CRS_WGS84
 from .project import Project
+from .rog import ficha_ids, scenario_specs
 
 
 def kml_color(hex_rgb: str, alpha: str = "ff") -> str:
@@ -103,7 +104,7 @@ def run(p: Project) -> dict:
     centro = gpd.GeoDataFrame({"n": ["Centro del lote"], "d": [resumen]}, geometry=[c], crs=crs)
 
     # escenarios para las manchas: P_mm 100 y 150 de la config; si no hay, los disponibles (máx. 3)
-    esc = [e["id"] for e in p.cfg.get("lluvia", {}).get("escenarios", []) if int(e.get("P_mm", 0)) in (100, 150)]
+    esc = [i for i in ficha_ids(p.cfg.get("lluvia", {})) if i in ("P100_24h", "P150_24h")]
     esc = [e for e in esc if (out / f"rog_{e}_agua5cm.geojson").exists()]
     if not esc:
         esc = sorted(x.name[len("rog_"):-len("_agua5cm.geojson")] for x in out.glob("rog_*_agua5cm.geojson"))[:3]
@@ -134,7 +135,7 @@ def run(p: Project) -> dict:
     doc.append(folder("HAND ≤ 1 m (3 km)", clip(_rd(out / "terrain_hand_le1m.geojson")), "hand1", visible=False))
     doc.append(folder("HAND ≤ 2 m (3 km)", clip(_rd(out / "terrain_hand_le2m.geojson")), "hand2", visible=False))
     for i, e in enumerate(esc):
-        cfg_e = next((x for x in p.cfg.get("lluvia", {}).get("escenarios", []) if x["id"] == e), None)
+        cfg_e = next((x for x in scenario_specs(p.cfg.get("lluvia", {})) if x["id"] == e), None)
         lab = f"{cfg_e['P_mm']} mm/{cfg_e['dur_h']} h" if cfg_e else e
         doc.append(folder(f"Agua > 5 cm · {lab}", _rd(out / f"rog_{e}_agua5cm.geojson"), f"esc{i}", visible=(i == 0)))
     doc.append("</Document></kml>")

@@ -101,6 +101,9 @@ def align(arr, tr, ref_tr, ref_shape, crs: str):
     return out
 
 
+FRAC_AGUA_MAX = 0.20  # fracción máxima plausible de agua abierta en el buffer hidrológico; por encima, Otsu está separando suelo húmedo/cultivos, no agua
+
+
 def otsu_db(db: np.ndarray, mask: np.ndarray, fixed: float) -> tuple[float, str]:
     from skimage.filters import threshold_otsu
     v = db[mask & np.isfinite(db)]
@@ -110,6 +113,11 @@ def otsu_db(db: np.ndarray, mask: np.ndarray, fixed: float) -> tuple[float, str]
     if t > -13.0:  # sin agua suficiente para bimodalidad: Otsu separa suelo/vegetación, no agua
         note = f"Otsu={t:.1f} dB no plausible para agua; se usa umbral fijo {fixed:.0f} dB"
         t = float(fixed)
+    else:
+        frac = float(np.mean(v < t))
+        if frac > FRAC_AGUA_MAX:  # Otsu separa suelo húmedo/cultivos, no agua abierta
+            note = f"Otsu={t:.1f} dB marca {100*frac:.0f} % del buffer como agua (no plausible); se usa umbral fijo {fixed:.0f} dB"
+            t = float(fixed)
     return t, note
 
 
@@ -117,6 +125,22 @@ def _pick_frame(items, lot84):
     """Si hay varios frames del mismo pase, el que contiene al lote (o el de mayor área)."""
     from shapely.geometry import shape as _shape
     return sorted(items, key=lambda i: (not _shape(i.geometry).contains(lot84), -_shape(i.geometry).area))[0]
+
+
+def plan_escenas(fechas, fecha_evento, pre_max_d: int, post_max_d: int):
+    """(pre, post): la última fecha en [evento − pre_max_d, evento) y la primera en [evento, evento + post_max_d]."""
+    pre = [d for d in fechas if 0 < (fecha_evento - d).days <= pre_max_d]
+    post = [d for d in fechas if 0 <= (d - fecha_evento).days <= post_max_d]
+    return (max(pre) if pre else None, min(post) if post else None)
+
+
+def borrar_stats_viejas(out: Path) -> None:
+    """Sin eventos no hay tabla nueva: se borra la de una corrida anterior para que no parezca actual."""
+    viejas = [q for q in (out / "sar_stats.csv", out / "sar_stats.md") if q.exists()]
+    for q in viejas:
+        q.unlink()
+    if viejas:
+        print(f"  [aviso] se borró {', '.join(q.name for q in viejas)} de una corrida anterior (ya no hay eventos configurados)")
 
 
 def run(p: Project) -> dict:
@@ -129,7 +153,11 @@ def run(p: Project) -> dict:
 
     aoi = p.load_aoi(); crs = p.crs
     cfg = p.cfg["sar"]; fixed = float(cfg.get("umbral_fijo_dB", -18.0))
-    events = {e["id"]: e for e in cfg.get("eventos", [])}
+    from .clima import resolve_events
+    events = {e["id"]: e for e in resolve_events(p)}
+    if not events:
+        print("SAR: sin eventos para buscar; se omite la fase."); borrar_stats_viejas(p.out); return {}
+    pre_max, post_max = int(cfg.get("pre_max_d", 12)), int(cfg.get("post_max_d", 3))
     dry = cfg["referencia_seca"]
     aoi_lab = f"{p.aoi_m:.0f} m"; hidro_lab = f"{p.hidro_m / 1000:.0f} km"
     RAW = p.data_raw / "s1"; PROC = p.data_proc / "s1"
@@ -144,15 +172,20 @@ def run(p: Project) -> dict:
     ref = ref_items[len(ref_items) // 2]
     plan = []  # (key, ev, item, date, tag)
     for key, ev in events.items():
-        d = pd.Timestamp(ev["fecha"]); win = int(ev.get("ventana_d", 10))
-        items = search(str((d - pd.Timedelta(days=win)).date()), str((d + pd.Timedelta(days=win)).date()), bbox)
+        d = pd.Timestamp(ev["fecha"])
+        items = search(str((d - pd.Timedelta(days=pre_max)).date()), str((d + pd.Timedelta(days=post_max)).date()), bbox)
         by_date = {}
         for it in items:
             by_date.setdefault(it.datetime.date(), []).append(it)
-        if not by_date:
+        pre, post = plan_escenas(list(by_date), d.date(), pre_max, post_max)
+        if pre is None and post is None and not by_date:
             plan.append((key, ev, None, None, None)); continue
-        for date, its in sorted(by_date.items()):
-            plan.append((key, ev, _pick_frame(its, lot84), date, "pre" if date < d.date() else "post"))
+        if pre is not None:
+            plan.append((key, ev, _pick_frame(by_date[pre], lot84), pre, "pre"))
+        if post is not None:
+            plan.append((key, ev, _pick_frame(by_date[post], lot84), post, "post"))
+        else:
+            plan.append((key, ev, None, None, "sin_post"))
     todo = [it for it in [ref] + [x[2] for x in plan if x[2] is not None] if not (RAW / f"{it.id}_VV.tif").exists()]
     n_scenes = 1 + sum(1 for x in plan if x[2] is not None)
     msg = (f"Sentinel-1 RTC (Planetary Computer): {n_scenes} escenas ({len(todo)} por bajar, ≈{16*len(todo)} MB; ventana {hidro_lab}):\n  "
@@ -181,10 +214,15 @@ def run(p: Project) -> dict:
     osm = gpd.read_file(osm_path) if osm_path.exists() else None
     ext_geom = aoi["aoi"].buffer(2 * p.aoi_m)
     for key, ev, it, date, tag in plan:
-        if it is None:
-            print(f"[{key}] sin escenas en ±{ev.get('ventana_d', 10)} d de {ev['fecha']}")
-            rows.append(dict(evento=key, descr=ev.get("descr", ""), escena="SIN COBERTURA", fecha=None)); continue
         d = pd.Timestamp(ev["fecha"])
+        if it is None:
+            if tag == "sin_post":
+                print(f"[{key}] sin pasada de Sentinel-1 dentro de los {post_max} días posteriores")
+                rows.append(dict(evento=key, descr=ev.get("descr", ""), escena="SIN PASADA A TIEMPO", fecha=None, momento="post",
+                                 fecha_evento=str(d.date()),
+                                 nota=f"sin pasada en 0-{post_max} días: no se puede saber si hubo agua")); continue
+            print(f"[{key}] sin escenas entre −{pre_max} y +{post_max} días de {ev['fecha']}")
+            rows.append(dict(evento=key, descr=ev.get("descr", ""), escena="SIN COBERTURA", fecha=None, fecha_evento=str(d.date()))); continue
         print(f"[{key}] {it.id} ({date}, {tag}, {it.properties.get('sat:orbit_state')})")
         db, tr = to_work_grid(fetch_vv(it, bbox, RAW), PROC / f"{it.id}_VV_db.tif", crs)
         db = align(db, tr, ref_tr, shape, crs) if (db.shape != shape or tr != ref_tr) else db
@@ -193,6 +231,7 @@ def run(p: Project) -> dict:
         new = water & ~ref_water
         diff = db - ref_db
         rows.append(dict(evento=key, descr=ev.get("descr", ""), escena=it.id, fecha=str(date), momento=tag,
+                         fecha_evento=str(d.date()),
                          dias_desde_evento=(date - d.date()).days, orbita=it.properties.get("sat:orbit_state"),
                          umbral_dB=t, nota=note,
                          pct_agua_10km=100 * water.sum() / b10.sum(), pct_agua_500m=100 * (water & b500).sum() / b500.sum(),
@@ -232,7 +271,8 @@ def run(p: Project) -> dict:
     (p.out / "sar_stats.md").write_text(
         "# Sentinel-1 RTC · agua detectada por evento\n\n"
         f"Fuente: Planetary Computer `sentinel-1-rtc` (gamma0 VV, 10 m). Filtro Lee 7x7, umbral de Otsu sobre el histograma "
-        f"del buffer {hidro_lab} (si Otsu > −13 dB no hay bimodalidad agua/no-agua y se usa {fixed:.0f} dB fijo). "
+        f"del buffer {hidro_lab} (si Otsu > −13 dB, o si marca más del {100*FRAC_AGUA_MAX:.0f} % del buffer como agua, "
+        f"no es plausible y se usa {fixed:.0f} dB fijo). "
         "'nueva' = agua en la escena y no en la referencia seca. Columnas: `*_500m` = buffer AOI "
         f"({aoi_lab}), `*_10km` = buffer hidrológico ({hidro_lab}).\n\n"
         "**Limitaciones**: el radar en banda C no ve el suelo bajo copas (agua bajo árboles aparece brillante por doble rebote, "
@@ -241,8 +281,8 @@ def run(p: Project) -> dict:
 
     lines = []
     for _, r in df.iterrows():
-        if r.get("escena") == "SIN COBERTURA":
-            lines.append(f"{r['evento']}: SIN COBERTURA Sentinel-1"); continue
+        if r.get("escena") in ("SIN COBERTURA", "SIN PASADA A TIEMPO"):
+            lines.append(f"{r['evento']}: {r['escena'].lower()}"); continue
         pn = r.get("pct_nueva_500m"); pn = 0 if pd.isna(pn) else pn
         lines.append(f"{r['evento']} {r['fecha']} ({r.get('momento', 'ref') if isinstance(r.get('momento'), str) else 'ref'}): "
                      f"umbral {r['umbral_dB']:.1f} dB · agua lote {r['pct_agua_lote']:.1f} % · {aoi_lab} {r['pct_agua_500m']:.1f} % "

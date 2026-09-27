@@ -6,6 +6,7 @@
  "dtheta": 0.15,
  "alpha": 0.7,
  "h_thresh_m": 0.05,
- "drenaje_h": 6.0,
- "dominio_m": 5000.0
+ "drenaje_h": 24.0,
+ "dominio_m": 5000.0,
+ "dem": "fabdem"
 }

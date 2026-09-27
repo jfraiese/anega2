@@ -24,6 +24,7 @@ dependencies:
   - pystac-client
   - planetary-computer
   - scikit-image
+  - pytest
   - pip
   - pip:
       - -e .

@@ -1,0 +1,14 @@
+{
+ "dems": [
+  "glo30",
+  "ign30"
+ ],
+ "omitidos": [],
+ "ids": [
+  "P050_24h",
+  "P100_24h",
+  "P150_24h",
+  "P200_24h"
+ ],
+ "primario": "fabdem"
+}

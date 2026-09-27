@@ -15,13 +15,38 @@
   </div>
   <div class="header-right">
     <label>Proyecto <select id="project"></select></label>
-    <label class="opacity">Opacidad rasters <input id="opacity" type="range" min="0.1" max="1" step="0.05" value="0.8"></label>
+    <div class="pills" id="vista"><button data-v="resumen" class="on">Resumen</button><button data-v="tecnico">Detalle técnico</button></div>
     <button id="btn-fit" title="Centrar en el lote">Centrar lote</button>
   </div>
 </header>
 <main>
-  <div id="map"></div>
-  <aside id="panel">
+  <div id="map-wrap">
+    <div id="map"></div>
+    <div id="r-hora" class="hora"><button id="r-play" title="Reproducir">▶</button><input id="r-t" type="range" min="0" max="48" step="1" value="0"><span id="r-t-v"></span></div>
+  </div>
+  <aside id="panel-resumen" class="panel">
+    <section class="card-r" id="r-lluvia">
+      <div class="label">1 · Con esta lluvia</div>
+      <div id="r-riesgo" class="riesgo"></div>
+      <p id="r-frase" class="frase">cargando…</p>
+      <p id="r-cortado" class="muted" hidden>Simulación cortada por tiempo de cálculo: las últimas horas pueden faltar.</p>
+      <div class="pills" id="r-dur"></div>
+      <div class="pills" id="r-suelo"></div>
+      <label class="row">Lluvia <input id="r-mm" type="range" min="25" max="250" step="5" value="100"><b id="r-mm-v"></b></label>
+      <p id="r-nota" class="muted" hidden>Este proyecto usa el formato viejo de escenarios: la lluvia salta entre los valores calculados.</p>
+      <div class="pills" id="r-umbral"></div>
+      <div class="chart-wrap small"><canvas id="r-curva"></canvas></div>
+    </section>
+    <section class="card-r" id="r-historia">
+      <div class="label">2 · ¿Pasó alguna vez?</div>
+      <div class="chart-wrap small"><canvas id="r-maximos"></canvas></div>
+      <p id="r-veces" class="muted"></p>
+      <div id="r-eventos" class="list"></div>
+      <div id="r-evento" class="evento"></div>
+    </section>
+    <a href="#" id="r-tecnico" class="card-r link">3 · Detalle técnico (HAND, capas, tablas) ›</a>
+  </aside>
+  <aside id="panel-tecnico" class="panel" hidden>
     <nav class="tabs">
       <button data-tab="veredicto" class="active">Veredicto</button>
       <button data-tab="capas">Capas</button>
@@ -35,7 +60,10 @@
       <div id="verdict" class="md"></div>
       <details><summary>Qué chequear en campo</summary><div id="field" class="md"></div></details>
     </section>
-    <section id="tab-capas" class="tab"><div id="layer-panel"></div></section>
+    <section id="tab-capas" class="tab">
+      <label class="row opacity">Opacidad rasters <input id="opacity" type="range" min="0.1" max="1" step="0.05" value="0.8"></label>
+      <div id="layer-panel"></div>
+    </section>
     <section id="tab-terreno" class="tab">
       <p class="muted" id="terrain-intro">Estadísticas del lote y del buffer de interés para cada DEM disponible. El primario se elige por fidelidad de la red de drenaje frente a los arroyos de OSM, con preferencia por terreno desnudo (FABDEM): los modelos de superficie ven las copas de los árboles.</p>
       <div id="terrain-table" class="table-wrap"></div>
@@ -66,6 +94,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+<script src="lib.js"></script>
+<script src="sim.js"></script>
+<script src="tecnico.js"></script>
+<script src="resumen.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
